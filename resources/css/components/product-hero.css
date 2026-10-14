@@ -1,0 +1,126 @@
+/* ---------------------------------------------------------------------------
+   Block: product-hero
+   ---------------------------------------------------------------------------
+   Spec: alto 240 - degradado 180deg #F5A623 -> #D5AA53
+   El degradado vive en el contenedor, asi que es lo que se ve mientras la foto
+   baja —y lo que queda si no llega—, tal como pide la spec.
+
+   Lo que NO es es el respaldo del platillo sin foto: ese no monta este bloque
+   (ver pages/mamayaya/[slug].astro), porque 240 de degradado a sangre —o 520x480 en
+   desktop— es el mismo hueco vacio que se viene a cerrar.
+   --------------------------------------------------------------------------- */
+.product-hero {
+  position: relative;
+  height: 240px;
+  overflow: hidden;
+  background: linear-gradient(180deg, var(--sf-accent-bright) 0%, var(--sf-accent) 100%);
+}
+
+.product-hero__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* --- El cambio de foto ----------------------------------------------------
+   Un desvanecimiento, sin movimiento: la foto de antes se apaga (out) y la nueva
+   se enciende en su sitio (in). La nueva arranca cuando la de antes va por la
+   mitad, asi que en el cruce las dos estan medio transparentes y se trasluce un
+   instante el gris del bloque: es lo que hace que el cambio se vea aunque las dos
+   fotos se parezcan.
+
+   Lo ponen y lo quitan src/scripts/product-hero.ts: --outgoing a la que sale,
+   --incoming a la que entra —en la misma caja, encima— y --reveal al bloque.
+   Al terminar retira la de antes y las clases, y la nueva se queda como la de
+   siempre, sin salto: ocupa la misma caja absoluta que en el flujo.
+
+   Todo dura 340ms —100 de espera de la que entra y 240 de entrada—, y va de la
+   mano de REVEAL_MS en el script, que es el respaldo por si `animationend` no
+   llega. Con movimiento reducido el bloque de styles/base.css deja las animaciones
+   en nada y el cambio es directo. */
+
+/* Modifier: reveal — el bloque durante el cambio: lo que se trasluce en el cruce
+   es el gris del sistema y no el degradado ambar. */
+.product-hero--reveal {
+  background: var(--sf-border);
+}
+
+/* Modifier: outgoing — la que sale: se apaga en 200ms. */
+.product-hero__image--outgoing {
+  animation: product-hero-out 200ms ease-in both;
+}
+
+/* Modifier: incoming — la que entra: espera 100ms y se enciende en 240. */
+.product-hero__image--incoming {
+  position: absolute;
+  inset: 0;
+  animation: product-hero-in 240ms ease-out 100ms both;
+}
+
+@keyframes product-hero-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes product-hero-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Modifier: failed — la foto no llego y se esta reintentando. Se oculta para que
+   se vea el degradado del bloque y no el icono de imagen rota con el alt encima. */
+.product-hero__image--failed {
+  visibility: hidden;
+}
+
+/* Element: product-hero__back
+   Anadido fuera de la spec: sin el, la vista de detalle no tiene salida hacia
+   el listado. Se puede borrar sin tocar nada mas. */
+.product-hero__back {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: var(--sf-white);
+  color: var(--sf-ink);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
+  transition: opacity 160ms ease;
+}
+.product-hero__back:hover {
+  opacity: 0.85;
+  color: var(--sf-ink);
+}
+
+/* --- Desktop ------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* Ya no va a sangre: la foto vive dentro de la columna de la ficha (ver
+     pages/[slug].astro) y ahi es una superficie mas, con las esquinas
+     de 16 del resto del sistema. */
+  .product-hero {
+    height: 360px;
+    border-radius: 16px;
+  }
+  /* El control de volver se acerca a la esquina: con la foto redondeada y el
+     gutter de 32, los 32 de sangria lo dejaban flotando lejos del borde. */
+  .product-hero__back {
+    left: 16px;
+  }
+}
+/* Los 520x480 de la spec de desktop, de lg: es donde la foto cabe al lado del
+   texto (ver pages/[slug].astro). El ancho se pide como BASE y no como
+   medida fija porque entre lg y xl el contenido no llega a los 1120 del lienzo, y
+   entonces la foto cede lo justo para no estrechar la columna de opciones. El
+   recorte lo sigue resolviendo el object-fit de la imagen. */
+@media (min-width: 992px) {
+  .product-hero {
+    flex: 0 1 520px;
+    height: 480px;
+  }
+}

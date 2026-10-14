@@ -1,0 +1,100 @@
+/* ---------------------------------------------------------------------------
+ * Global stylesheet. The order is mandatory: do not reorder.
+ *
+ * 1. Bootstrap, precompiled and whole. Without Sass it can't be imported piece
+ *    by piece, so it's overridden with plain CSS (see bootstrap-overrides.css).
+ * 2. The font, which exposes --sf-font-inter.
+ * 3. The store's colors, used by both the overrides and the blocks. The accent
+ *    isn't there: the theme sets it on the layout's <html> `style`.
+ * 4. The overrides, which bend Bootstrap to the store's spec.
+ * 5. Our own base, which has to come after Bootstrap's utilities.
+ * 6. The order screens' scaffolding: the only two blocks that have no component
+ *    to live in.
+ * 7. One file per Blade component (the BEM blocks), in the order the Astro
+ *    project loaded them: children before the component that mounts them.
+ * 8. One file per page, last.
+ * --------------------------------------------------------------------------- */
+
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import './fonts.css';
+@import './colors.css';
+@import './bootstrap-overrides.css';
+@import './base.css';
+@import './screens.css';
+
+/* Layout */
+@import './components/icon.css';
+@import './components/chat-fab.css';
+
+/* Header and its sheets */
+@import './components/navbar-desktop.css';
+@import './components/sheet.css';
+@import './components/schedule-sheet.css';
+@import './components/location-sheet.css';
+@import './components/navbar.css';
+
+/* Order bar */
+@import './components/delivery-switch.css';
+@import './components/order-meta.css';
+@import './components/menu-search.css';
+@import './components/order-bar.css';
+
+/* Menu */
+@import './components/category-nav.css';
+@import './components/menu-index.css';
+@import './components/menu-sheet.css';
+@import './components/hero.css';
+@import './components/promo-badge.css';
+@import './components/menu-card.css';
+@import './components/product-card.css';
+@import './components/menu-section.css';
+@import './components/menu-sidebar.css';
+@import './components/store-closed-notice.css';
+@import './components/retry-notice.css';
+@import './components/cart-fab.css';
+@import './components/footer.css';
+
+/* Product page */
+@import './components/back-button.css';
+@import './components/product-hero.css';
+@import './components/section-label.css';
+@import './components/quantity-stepper.css';
+@import './components/option-group.css';
+@import './components/product-counter.css';
+@import './components/action-bar.css';
+
+/* Cart */
+@import './components/shipping-progress.css';
+@import './components/order-comments.css';
+@import './components/cart-summary.css';
+
+/* Delivery data */
+@import './components/text-field.css';
+@import './components/country-select.css';
+@import './components/location-map.css';
+@import './components/form-error.css';
+@import './components/location-picker.css';
+@import './components/info-note.css';
+
+/* Payment */
+@import './components/tip-selector.css';
+@import './components/payment-option.css';
+@import './components/payment-methods.css';
+@import './components/payment-summary.css';
+@import './components/legal-note.css';
+@import './components/copy-button.css';
+@import './components/bank-account.css';
+@import './components/order-detail.css';
+@import './components/payment-method-card.css';
+
+/* Acknowledgement */
+@import './components/order-status.css';
+@import './components/order-receipt.css';
+@import './components/steps.css';
+@import './components/clabe-card.css';
+@import './components/confirmation-cta.css';
+
+/* Pages */
+@import './pages/menu.css';
+@import './pages/product.css';
+@import './pages/cart.css';

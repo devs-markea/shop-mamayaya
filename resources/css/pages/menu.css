@@ -1,0 +1,145 @@
+/* ---------------------------------------------------------------------------
+   Block: storefront
+   ---------------------------------------------------------------------------
+   El armazon de la portada, y solo de la portada. Tres piezas encajadas:
+
+   .storefront          <main>, el contenedor de fuera: 48 arriba y 48 abajo.
+   .storefront__stack   el subcontenedor, un .container-fluid de Bootstrap: 32
+                        de sangria, tope en 1140 de contenido y, dentro, dos
+                        columnas separadas 32.
+   .storefront__content la de la derecha: el banner, la barra y las secciones,
+                        separados 32. La de la izquierda es el indice del menu
+                        (components/MenuSidebar.astro).
+
+   El de fuera solo pone el aire vertical; el de dentro, el ancho y el lateral.
+   Repartido asi, mover la portada arriba o abajo no toca los margenes, y
+   cambiar de ancho no toca el aire.
+
+   En movil ni la pila ni su columna existen: las piezas —banner, barra de
+   pedido y lista— se apilan solas y cada una trae su propio gutter y su propio aire, como
+   hasta ahora. En desktop la pila es EL contenedor, asi que el unico margen
+   lateral de la portada es el suyo: el indice arranca en la misma linea que el
+   logo de la cabecera, y la ultima tarjeta acaba en la misma que el carrito.
+
+   Por eso el aire —vertical y lateral— se les quita ahi a los bloques (ver
+   components/Hero.astro, components/OrderBar.astro y los estilos de este
+   archivo): en desktop lo pone la pila, en un solo sitio, y no la suma de los
+   margenes de cada bloque.
+   --------------------------------------------------------------------------- */
+/* Movil: sin relleno abajo. El boton flotante del pedido (ver
+   components/CartFab.astro) ya no puede quedarse sobre el "+" de la ultima
+   tarjeta: detras de la lista viene el pie (components/Footer.astro), y al final
+   de la pagina el circulo cae sobre el. */
+
+/* display: contents: en movil los envoltorios no pintan ni ocupan nada —ni el
+   ancho ni el relleno del .container-fluid llegan a aplicarse—, asi que sus hijos
+   siguen siendo hijos de <main> a efectos de layout y la pantalla se ve
+   exactamente igual que si no estuvieran. */
+.storefront__stack,
+.storefront__content {
+  display: contents;
+}
+
+/* --- Desktop ------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* El contenedor de fuera: solo el aire de arriba y abajo. El lateral no puede
+     ir aqui porque el aviso de tienda cerrada tambien cuelga de <main>, flota y
+     trae su propia sangria: se la duplicaria. */
+  .storefront {
+    padding-block: 48px;
+  }
+  .storefront__stack {
+    /* El ancho, el centrado y la sangria son los del .container-fluid; lo unico
+       que se le cambia es la medida del gutter, que en la portada es el de la
+       tienda (32) y no el de la rejilla (24). Se pide en --bs-gutter-x, que es
+       la variable por la que el contenedor pregunta, y se dobla porque el
+       reparte la mitad a cada lado. */
+    --bs-gutter-x: calc(32px * 2);
+    /* Y el tope, que es lo unico que .container-fluid no trae: fluido hasta
+       aqui, y de aqui en adelante centrado, dejando el resto de la pantalla a
+       los lados. Sin el, la portada seguiria creciendo mientras la cabecera y el
+       pie paran en 1140, y los tres dejarian de coincidir en el primer monitor
+       ancho.
+
+       Se suma el gutter porque el tope del diseno es el del CONTENIDO y la caja
+       mide con border-box: 1140 + 32 + 32 deja dentro los 1140 de la spec, los
+       mismos que paran la cabecera y el pie dentro de su propia sangria. */
+    max-width: calc(1140px + var(--bs-gutter-x));
+    display: flex;
+    gap: 32px;
+  }
+  .storefront__content {
+    /* Las secciones preguntan por el ancho de esta columna para repartir sus
+       tarjetas (ver components/MenuSection.astro): con el indice al lado, el
+       viewport ya no dice cuanto sitio queda. */
+    container: menu / inline-size;
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 32px;
+    min-width: 0;
+  }
+}
+/* ---------------------------------------------------------------------------
+   Block: product-list
+   ---------------------------------------------------------------------------
+   Spec: gap 24 - padding 20
+   El reparto de las tarjetas es de cada seccion (components/MenuSection.astro):
+   aqui queda el padding de la lista y el hueco entre secciones.
+   --------------------------------------------------------------------------- */
+.product-list {
+  padding: 20px 20px;
+}
+
+/* Element: sections — en movil, 32 entre secciones: mas que los 24 entre
+   tarjetas, para que se lea donde acaba cada grupo. */
+.product-list__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+/* Element: notice — ocupa el sitio de la lista cuando no hay nada que pintar:
+   catalogo vacio (200 con lista vacia) o API inalcanzable. */
+.product-list__notice {
+  margin: 0;
+  padding-block: 32px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sf-muted);
+  text-align: center;
+}
+
+/* --- Desktop ------------------------------------------------------------- */
+@media (min-width: 768px) {
+  /* Sin aire propio de ninguna clase: el que la separa de la barra lo pone su
+     columna (ver los estilos de este archivo), el de abajo el padding de <main>,
+     y el de los lados la pila. */
+  .product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 0;
+  }
+  /* Cada seccion trae su cabecera: entre una y otra, el doble del hueco que hay
+     entre la cabecera y sus tarjetas, para que se lea donde acaba cada grupo. */
+  .product-list__sections {
+    gap: 48px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Block: menu-results
+   ---------------------------------------------------------------------------
+   La cabecera de los resultados del buscador: "Resultados" y, debajo, cuantos y
+   de que. Los rotulos son los de la cabecera de una seccion
+   (components/MenuSection.astro), y a 24 de la lista, como alli. Solo desktop:
+   el buscador no existe en movil.
+   --------------------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .menu-results {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+}

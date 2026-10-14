@@ -1,0 +1,491 @@
+// ---------------------------------------------------------------------------
+// API 4 — Checkout.
+//
+//   POST /api/checkout   convierte el carrito de la sesion en pedido (201)
+//
+// Las lineas NO viajan en el cuerpo. Ya estan en el carrito del servidor,
+// identificadas por la cookie de sesion, y el checkout las congela en un
+// snapshot inmutable con sus variantes y personalizaciones. Lo unico que hay que
+// reunir por el camino es: modo de entrega, cliente, propina y metodo de pago.
+//
+// Isomorfico a proposito: no importa nada de `astro:env`, asi que vale igual en
+// el frontmatter de una pagina y en un <script> de cliente. El POST va contra
+// /api/checkout de este mismo front, que reenvia con el token de la sesion — el
+// navegador no lo tiene, es una cookie httpOnly.
+// ---------------------------------------------------------------------------
+
+import { ERROR_AREAS, offlineCode, statusCode, withCode } from './error-codes.ts';
+import { throttleMessage } from './throttle.ts';
+import type { CartOption } from './cart-view.ts';
+
+export type DeliveryType = 'delivery' | 'pickup';
+
+/** Los tres que acepta la API. `efectivo` no esta en el diseno todavia. */
+export type PaymentMethod = 'bank_transfer' | 'efectivo' | 'mercado_pago';
+
+export interface CheckoutCustomer {
+  /** Obligatorio siempre. */
+  name: string;
+  /** Obligatorio siempre: es la llave con la que el ERP identifica al cliente. */
+  phone: string;
+  email?: string;
+  /**
+   * A domicilio hace falta UNA de las dos formas de decir donde entregar: estos
+   * tres juntos, o `locationUrl`. Con ninguna, la API responde 422 en los tres.
+   *
+   * Media direccion no vale: elegida la via escrita, los tres van juntos.
+   */
+  neighborhood?: string;
+  street?: string;
+  exteriorNumber?: string;
+  crossStreets?: string;
+  addressReferences?: string;
+  /** Enlace de Google Maps al punto elegido. Sustituye a la direccion escrita. */
+  locationUrl?: string;
+}
+
+export interface CheckoutRequest {
+  deliveryType: DeliveryType;
+  paymentMethod: PaymentMethod;
+  /** Opcional para la API. Se manda siempre, aunque sea 0. */
+  tip?: number;
+  /**
+   * La cotizacion de envio que vio el comprador, como REFERENCIA de auditoria.
+   *
+   * El importe no viaja: la API recalcula el envio al cerrar —con la misma
+   * tarifa y el mismo punto— y lo congela en `shippingTotal`. Un `shipping.cost`
+   * en el cuerpo se rechaza con 422, y con razon: aceptar un precio del cliente
+   * es justo lo que este reparto viene a evitar.
+   *
+   * Un `quoteId` viejo, de otra sesion o inventado no rompe el pedido.
+   */
+  shipping?: { quoteId: string };
+  /**
+   * Comentarios del pedido, maximo 1000. Van a la raiz y no al cliente porque
+   * son del pedido: el panel los muestra bajo las lineas.
+   */
+  notes?: string;
+  customer: CheckoutCustomer;
+}
+
+/**
+ * Lo minimo que necesitan las pantallas de cierre para listar el pedido.
+ *
+ * Lo cumplen tanto las lineas del carrito como las del pedido creado, asi que
+ * las dos sirven sin convertir nada: antes de cerrar se pinta el carrito y
+ * despues el pedido, que es lo unico que queda (el checkout vacia el carrito).
+ */
+export interface OrderLine {
+  quantity: number;
+  name: string;
+  /**
+   * La variante elegida. La escribe `{platillos}` detras del nombre y con guion,
+   * porque es parte del nombre de lo que se pidio, no una nota al margen.
+   *
+   * Solo sale en el mensaje si el negocio encendio `whatsapp.items.showVariant`.
+   */
+  variantName?: string | null;
+  /**
+   * Precio BASE de la variante, POR UNIDAD. No es el total de la linea ni lleva
+   * las opciones dentro: el mensaje desglosa los importes para que sumados den
+   * el subtotal, y meter aqui el total de la linea rompe esa suma.
+   */
+  unitPrice?: number;
+  /**
+   * Como se prepara. Van una por renglon debajo del platillo, y solo si el
+   * negocio encendio `whatsapp.items.showCustomizations`.
+   */
+  options?: CartOption[];
+  /**
+   * La promocion que la API aplico a la linea, para rotularla en el detalle.
+   * Opcional porque solo la traen las lineas del carrito: el pedido ya creado
+   * congela el nombre de la promocion, no su etiqueta.
+   */
+  promotion?: { label?: string; name?: string } | null;
+  /**
+   * Importe de la linea, que el resumen de desktop rotula a la derecha del
+   * nombre. Mismo nombre que en el carrito (`CartItem.lineTotal`), que es de
+   * donde salen las lineas antes de cerrar el pedido.
+   *
+   * Opcional porque no se puede afirmar que `GET /api/orders/{id}` lo traiga:
+   * hasta ahora estas pantallas solo leian cantidad y nombre. Sin el, la linea
+   * se queda con su rotulo y sin importe —que es exactamente lo que se ve hoy—
+   * en lugar de rotular un cero que nadie pago.
+   */
+  lineTotal?: number;
+}
+
+/**
+ * Por que no se cobro, con el motivo ya traducido.
+ *
+ * Llega SOLO si el cobro murio —rechazado, cancelado o expirado—, asi que se
+ * comprueba por presencia y no contra null: un cobro pendiente o acreditado no
+ * lleva el bloque.
+ *
+ * Es lo que separa los dos significados de `pending_payment`: con rechazo, el
+ * cobro fallo; sin el, el webhook todavia no ha llegado.
+ */
+export interface PaymentRejection {
+  /** Clave estable (`insufficient_funds`, `duplicated_payment`...). */
+  reason: string;
+  /** En espanol y escrito para el comprador. Se muestra tal cual. */
+  message: string;
+  /**
+   * Si reintentar AHORA tiene sentido. Es false en dos casos y por buenos
+   * motivos: con un cobro en vuelo, un segundo intento puede acabar en dos
+   * cargos; y si el comprador abandono, no es la tienda quien debe empujarlo.
+   */
+  retryable: boolean;
+}
+
+/**
+ * Cobro del pedido. **Solo viaja en Mercado Pago**: transferencia y efectivo no
+ * traen el bloque, porque su pago no pasa por una pasarela.
+ */
+export interface OrderPayment {
+  provider: 'mercado_pago';
+  /** Estado del cobro (`pending`, `approved`, `rejected`...). */
+  status: string;
+  /**
+   * A donde mandar al comprador. Puede llegar null —la pasarela no respondio, o
+   * no esta configurada—: entonces NO se redirige, que seria navegar a null. El
+   * pedido existe y se paga mas tarde con startPayment().
+   */
+  redirectUrl: string | null;
+  rejection?: PaymentRejection;
+}
+
+/** Pedido creado. Solo los campos que consume la tienda. */
+export interface StoreOrder {
+  /**
+   * Identificador de ACCESO: con el se relee el pedido y se le cobra. No se
+   * rotula ni se mete en el mensaje — para eso esta `folio`.
+   */
+  id: string;
+  /**
+   * EL NUMERO DE PEDIDO: el contador (1, 2, 3...) que el negocio ve en su panel,
+   * y el que va en `{folio}`. Se asigna al crear el pedido, en los tres metodos.
+   *
+   * NO es el `id`, y no coinciden: en cuanto se borra un pedido en el panel los
+   * dos contadores se separan (el id no se reutiliza, el folio si sigue al ultimo),
+   * y el folio puede ademas reiniciarse o cambiar de formato. Llega null solo en
+   * pedidos anteriores al 2026-08-11, que nunca tuvieron uno.
+   *
+   * Para rotularlo, orderFolio(): que ninguna pantalla lo lea a pelo.
+   */
+  folio?: number | null;
+  /** El mismo, ya rotulado por el backend: `#49` (o `#000` si no tiene). */
+  folioLabel?: string;
+  /**
+   * Llega null en transferencia hasta que la tienda valida el pago, asi que sirve
+   * para saber si el pedido ya esta cobrado. No se rotula: hoy es un ULID de 26
+   * caracteres, ilegible en voz alta.
+   */
+  orderNumber: string | null;
+  /** Clave estable para ramificar (`awaiting_verification`, `paid`...). */
+  status: string;
+  /** Etiqueta en espanol, ya resuelta por el backend. */
+  statusLabel: string;
+  isActive: boolean;
+  deliveryType: DeliveryType;
+  /**
+   * Con que se paga. Viaja en los TRES flujos, con el mismo token que se mando
+   * al checkout, y es la llave de la plantilla de WhatsApp.
+   *
+   * Es lo que hace innecesario deducir el metodo de la presencia de `payment`,
+   * que solo distingue Mercado Pago y dejaba a transferencia y efectivo
+   * indistinguibles — asi es como el pedido de efectivo acabo pidiendo un
+   * comprobante que no existe.
+   */
+  paymentMethod?: PaymentMethod | null;
+  subtotal: number;
+  discountTotal: number;
+  shippingTotal: number;
+  tipTotal: number;
+  total: number;
+  /**
+   * POR QUE ese envio. **Solo viaja cuando hubo cotizacion**, y esa ausencia es
+   * el dato: con `shippingTotal: 0` y sin este bloque el cero es un hueco, no un
+   * precio, y el mensaje tiene que gritarlo antes de que alguien cobre.
+   */
+  shipping?: {
+    quoteId: string;
+    distanceKm: number | null;
+    /** `ciudad` es la tarifa base, sin recargo de zona. */
+    zone: string | null;
+    tier: string | null;
+  };
+  /** Comentarios que escribio el comprador al cerrar. Van en `{notas}`. */
+  notes?: string | null;
+  placedAt: string | null;
+  /**
+   * Snapshot congelado del cliente, no el registro vivo: un pedido historico no
+   * cambia si el cliente actualiza su direccion despues.
+   *
+   * De aqui salen ocho de los veinte marcadores del mensaje. Las piezas de la
+   * direccion van todas sueltas a proposito: el mensaje las pinta una por
+   * renglon, y el que llega vacio se lleva el suyo.
+   */
+  customer?: {
+    name?: string;
+    phone?: string;
+    street?: string;
+    exteriorNumber?: string;
+    neighborhood?: string;
+    crossStreets?: string;
+    addressReferences?: string;
+    locationUrl?: string;
+  };
+  items: OrderLine[];
+  /**
+   * El cobro, solo en Mercado Pago.
+   *
+   * Su ausencia NO es como se sabe con que se paga: para eso esta
+   * `paymentMethod`. Este bloque solo dice si hubo pasarela, y leerlo como
+   * metodo confunde transferencia con efectivo.
+   */
+  payment?: OrderPayment;
+}
+
+/** Como se rotula cada metodo en las pantallas de cierre. */
+/**
+ * El numero de pedido tal como se rotula, sin el "#": `49`.
+ *
+ * UN SOLO SITIO PARA LEERLO. El acuse y el mensaje de WhatsApp tienen que decir el
+ * mismo numero, y es el que el negocio ve en su panel y el que lleva la operacion
+ * en Mercado Pago ("Pedido #49"). El acuse rotulaba el `id` —la llave de acceso—,
+ * que coincidio con el folio hasta que se borro el primer pedido en el panel: desde
+ * entonces el comprador leia un numero y el negocio tenia otro.
+ *
+ * Un pedido sin folio —solo los anteriores al 2026-08-11— devuelve `000`, el mismo
+ * valor reservado que manda el backend en `folioLabel` (`#000`): el contador
+ * arranca en 1, asi que ningun pedido real lo lleva.
+ */
+export function orderFolio(order: Pick<StoreOrder, 'folio'>): string {
+  return order.folio != null ? String(order.folio) : '000';
+}
+
+export const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  bank_transfer: 'Transferencia',
+  efectivo: 'Efectivo',
+  mercado_pago: 'Mercado Pago',
+};
+
+/** Del valor del radio de /mamayaya/pago al que espera la API. */
+export function toPaymentMethod(value: string | undefined): PaymentMethod | null {
+  if (value === 'transferencia') return 'bank_transfer';
+  if (value === 'mercadopago') return 'mercado_pago';
+  if (value === 'efectivo') return 'efectivo';
+  return null;
+}
+
+export type CheckoutOutcome =
+  | { ok: true; order: StoreOrder }
+  | {
+      ok: false;
+      message: string;
+      status?: number;
+      /**
+       * El pedido no llego a salir porque al borrador le falta algo de la
+       * entrega. Se distingue del resto de fallos porque no se arregla donde se
+       * produce: las tres pantallas que cierran el pedido —el resumen y las dos
+       * de confirmacion— no tienen los campos que el aviso nombra, asi que
+       * escribirlo alli deja al comprador delante de algo que no puede atender.
+       *
+       * Quien lo reciba lleva a DELIVERY_SCREEN en lugar de rotularlo. Los demas
+       * fallos si son de la pantalla en la que ocurren —un rechazo de la API, la
+       * conexion— y se quedan escritos donde estan.
+       */
+      incomplete?: boolean;
+    };
+
+const GENERIC_ERROR = 'No pudimos crear tu pedido. Intentalo de nuevo.';
+
+/**
+ * Cabecera con la huella de dispositivo de Mercado Pago, si esta pantalla la
+ * pidio y llego a calcularse.
+ *
+ * El valor lo genera `security.js` en el navegador y lo deja en la global
+ * `MP_DEVICE_SESSION_ID`. Sirve para que Mercado Pago reconozca el dispositivo
+ * desde el que se compra: un comprador habitual pagando desde otro aparato no es
+ * necesariamente un fraude, y con esta senal la pasarela puede afinar en lugar de
+ * rechazar un cobro legitimo.
+ *
+ * Solo se manda si existe, y no se espera por ella: el script es de un tercero y
+ * carga en diferido, asi que puede no haber terminado cuando se pulsa. Un cobro
+ * sin huella se procesa igual —es una senal, no un requisito—, y bloquear la
+ * compra por un script ajeno costaria mas que la aprobacion que gana.
+ *
+ * De aqui la cabecera todavia tiene DOS saltos hasta Mercado Pago: el proxy de
+ * este front, que la nombra a mano, y Laravel, que es quien crea el cobro y quien
+ * tiene que reenviarla como `X-meli-session-id`. Sin ese ultimo salto el valor
+ * llega arriba y se queda ahi.
+ */
+function deviceHeader(): Record<string, string> {
+  const value = (globalThis as { MP_DEVICE_SESSION_ID?: unknown }).MP_DEVICE_SESSION_ID;
+
+  return typeof value === 'string' && value ? { 'X-Meli-Session-Id': value } : {};
+}
+
+/** El del cobro: el pedido ya existe, y lo que fallo es pagarlo. */
+const PAYMENT_ERROR = 'No pudimos abrir el pago. Intentalo de nuevo.';
+
+/**
+ * Primer error legible de una respuesta de fallo.
+ *
+ * Se prefiere `errors` a `message` por lo mismo que en la ficha del platillo: las
+ * reglas de negocio llegan en espanol dentro de `errors`, mientras que `message`
+ * puede venir en ingles —o con el detalle de una excepcion— si el fallo fue de
+ * forma.
+ *
+ * El 409 es la excepcion: la idempotencia no responde `errors` y su `message`
+ * ("Este pedido ya se habia enviado.") es justo lo que hay que decirle a quien
+ * esta comprando.
+ */
+function readError(body: unknown, status: number, fallback = GENERIC_ERROR): string {
+  if (!body || typeof body !== 'object') return fallback;
+
+  const errors = (body as { errors?: Record<string, string[]> }).errors;
+  const first = errors && Object.values(errors)[0]?.[0];
+  if (first) return first;
+
+  if (status === 409) {
+    const message = (body as { message?: string }).message;
+    if (message) return message;
+  }
+
+  return fallback;
+}
+
+/**
+ * Cierra el pedido. Solo navegador: el POST pasa por el proxy de este front para
+ * que sea el servidor quien ponga el token de la sesion.
+ *
+ * `idempotencyKey` es una cadena por INTENTO DE COMPRA, no por peticion: con la
+ * misma clave, un reintento devuelve 200 con el pedido que ya se creo en lugar de
+ * crear otro. Es lo que cubre el hueco del boton deshabilitado, que no protege de
+ * un reintento tras un timeout —donde el pedido si se creo pero la respuesta se
+ * perdio—. Pasados 10 minutos la API deja de recordar la clave y responde 409.
+ *
+ * Cualquier 2xx vale: 201 el primer envio, 200 el reintento.
+ */
+export async function placeOrder(
+  request: CheckoutRequest,
+  idempotencyKey: string,
+): Promise<CheckoutOutcome> {
+  let response: Response;
+
+  try {
+    response = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'Idempotency-Key': idempotencyKey,
+        ...deviceHeader(),
+      },
+      body: JSON.stringify(request),
+    });
+  } catch {
+    // El codigo acompana al mensaje en la misma linea: este aviso vive pegado a un boton y
+    // una segunda linea moveria lo que hay debajo. Ver src/lib/error-codes.ts.
+    return {
+      ok: false,
+      message: withCode(
+        'No pudimos contactar con la tienda. Revisa tu conexion.',
+        offlineCode(ERROR_AREAS.payment),
+      ),
+    };
+  }
+
+  const body = await response.json().catch(() => null);
+  const code = statusCode(ERROR_AREAS.payment, response.status);
+
+  if (!response.ok) {
+    // El 429 va ANTES que readError: no es un error del pedido —los datos estaban bien— sino un
+    // techo de ritmo, y su respuesta no trae `errors` que mostrar. Ver src/lib/throttle.ts.
+    const throttled = throttleMessage(response);
+
+    return {
+      ok: false,
+      message: withCode(throttled ?? readError(body, response.status), code),
+      status: response.status,
+    };
+  }
+
+  const order = (body as { data?: StoreOrder } | null)?.data;
+  if (!order) return { ok: false, message: withCode(GENERIC_ERROR, code), status: response.status };
+
+  return { ok: true, order };
+}
+
+export type PaymentAttempt =
+  | { ok: true; redirectUrl: string }
+  | { ok: false; message: string };
+
+/**
+ * Abre un cobro NUEVO sobre un pedido que sigue esperando pago, y devuelve a
+ * donde mandar al comprador. Es la unica via de reintento en Mercado Pago.
+ *
+ * No se reintenta con /api/checkout: tras el primer cierre el carrito esta vacio,
+ * asi que responderia "Tu carrito esta vacio" —o 409, si la clave de idempotencia
+ * sigue en su ventana—. Aqui el pedido se reutiliza y solo el cobro es nuevo, asi
+ * que no se generan pedidos basura; de todos los intentos, la API garantiza que
+ * solo uno pueda quedar aprobado.
+ *
+ * Un intento intacto se reutiliza arriba: pulsar dos veces devuelve la misma
+ * pasarela en lugar de abrir otra.
+ *
+ * Solo navegador: pasa por el proxy de este front, que pone el token de la sesion.
+ */
+export async function startPayment(orderId: string): Promise<PaymentAttempt> {
+  let response: Response;
+
+  try {
+    response = await fetch(`/api/orders/${encodeURIComponent(orderId)}/payment`, {
+      method: 'POST',
+      // Aqui tambien: esto crea un cobro NUEVO, asi que es otro momento en el que
+      // Mercado Pago decide si aprueba. Y es el que mas lo necesita —el anterior
+      // ya fallo—, de ahi que el acuse cargue `security.js` cuando ofrece pagar.
+      headers: { Accept: 'application/json', ...deviceHeader() },
+    });
+  } catch {
+    return {
+      ok: false,
+      message: withCode(
+        'No pudimos contactar con la tienda. Revisa tu conexion.',
+        offlineCode(ERROR_AREAS.payment),
+      ),
+    };
+  }
+
+  const body = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    // Respaldo propio: aqui el pedido ya existe, asi que hablar de crearlo
+    // asustaria sin motivo. Los mensajes de negocio siguen mandando cuando vienen
+    // ("Este pedido ya no admite un pago nuevo."), y el techo de ritmo por delante de todos:
+    // reintentar el cobro es justo lo que trae a alguien hasta aqui varias veces seguidas.
+    return {
+      ok: false,
+      message: withCode(
+        throttleMessage(response) ?? readError(body, response.status, PAYMENT_ERROR),
+        statusCode(ERROR_AREAS.payment, response.status),
+      ),
+    };
+  }
+
+  // Aqui `data` es el cobro, no el pedido: este endpoint no devuelve la orden.
+  const redirectUrl = (body as { data?: { redirectUrl?: string | null } } | null)?.data?.redirectUrl;
+
+  if (!redirectUrl) {
+    // El cobro se creo —de ahi el 201— pero llego sin a donde mandar al comprador. Es su
+    // propio caso, y por eso lleva codigo propio: SF-P201.
+    return {
+      ok: false,
+      message: withCode(PAYMENT_ERROR, statusCode(ERROR_AREAS.payment, response.status)),
+    };
+  }
+
+  return { ok: true, redirectUrl };
+}

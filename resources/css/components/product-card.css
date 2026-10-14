@@ -1,0 +1,473 @@
+/* ---------------------------------------------------------------------------
+   Block: skeleton
+   ---------------------------------------------------------------------------
+   El relleno de lo que todavia no ha llegado: un gris con una banda clara que lo
+   cruza. Se pone en la caja que ya reserva el sitio, no en una copia del
+   contenido, asi que no hay dos marcados que mantener a la par.
+
+   Hoy lo lleva la foto de la tarjeta de platillo (ver los estilos de este archivo), que es
+   lo unico de la portada que llega DESPUES del HTML: el nombre, la descripcion y
+   el precio los pinta el servidor, y un esqueleto sobre ellos taparia un texto
+   que ya esta.
+
+   Se retira quitando la clase, y lo hace src/scripts/image-skeleton.ts cuando la
+   imagen carga —o falla—. Debajo queda el gris propio de la caja, que es el mismo
+   color: al retirarse no cambia nada de sitio ni de tono, solo se detiene.
+
+   El barrido va en el FONDO de la caja y no en un ::after, para que la foto —un
+   hijo— siempre pinte por encima. Asi, si el script no llegara a correr, lo que
+   queda es una animacion invisible detras de una foto opaca en lugar de una banda
+   blanca cruzandola para siempre.
+
+   No lleva reglas de `prefers-reduced-motion`: el bloque de styles/base.css ya deja
+   toda animacion en 0.01ms y una sola vuelta, asi que con movimiento reducido esto
+   es exactamente el gris plano de antes.
+   --------------------------------------------------------------------------- */
+.skeleton {
+  background-color: var(--sf-border);
+  background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 100%);
+  background-repeat: no-repeat;
+  /* La banda mide media caja. Con eso, los porcentajes de position dejan de ser
+     evidentes: el desplazamiento es P x (ancho de la caja - ancho de la banda), o
+     sea P x medio ancho. De ahi los valores del keyframe —-100% la deja justo
+     fuera por la izquierda y 200% justo fuera por la derecha—, y no 0% y 100%,
+     que la dejarian asomando en los dos extremos. */
+  background-size: 50% 100%;
+  background-position: -100% 0;
+  animation: sf-skeleton 1.4s ease-in-out infinite;
+}
+
+@keyframes sf-skeleton {
+  to {
+    background-position: 200% 0;
+  }
+}
+/* ---------------------------------------------------------------------------
+   Block: product-card  (sobre .card de Bootstrap)
+   ---------------------------------------------------------------------------
+   La tarjeta de los destacados. Bootstrap aporta fondo y radius via .card; aqui
+   queda la disposicion, que .card no trae de serie.
+
+   Spec movil: 230x302 - padding 12 - gap 12 - radius 16
+     foto 206x154, radius 12, con el "+" en su esquina de abajo a la derecha
+     nombre Inter 600 14/20 · descripcion Inter 400 14/20 · precio Inter 600 14/20
+
+   Desktop, en su bloque: la foto a todo lo ancho, sin relleno alrededor.
+
+   Los rotulos —nombre, descripcion, precios, "+"— los comparte <MenuCard>, que
+   usa estas mismas clases. Lo que es solo de esta tarjeta va colgado de
+   .product-card.
+   --------------------------------------------------------------------------- */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 302px;
+  height: 100%;
+  padding: 12px;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.product-card:hover {
+  box-shadow: 0 4px 12px 0 rgb(0 0 0 / 8%);
+}
+
+/* Element: media — la foto, arriba y a todo lo ancho del relleno: 206x154.
+
+   El gris de aqui es el esqueleto en reposo: la caja llega con .skeleton puesta y
+   al retirarse queda este mismo color, asi que la foto que tarda late y la que ya
+   esta se apoya en el gris de siempre. Ver los estilos de este archivo. */
+.product-card__media {
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 154px;
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: var(--sf-border);
+}
+
+.product-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Element: rank — "#1 favoritos", arriba a la izquierda de la foto, a 8 de sus
+   bordes. Spec: 81x23 - padding 5/9 - radius 100 - fondo #228B5A
+   Inter 700 11/100% blanco; en movil, 12.
+
+   El verde no sigue al tema a proposito: es una distincion, como el verde del
+   ahorro, no la marca. */
+.product-card__rank {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 23px;
+  padding: 5px 9px;
+  border-radius: 100px;
+  background-color: var(--sf-success-strong);
+  color: var(--sf-white);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Element: body — nombre, descripcion y, al fondo, el precio */
+.product-card__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Element: title — nombre y, al final, la insignia de la promocion. En fila:
+   el nombre llega ya recortado a 24 caracteres desde el componente, asi que
+   nunca empuja la insignia a una segunda linea. El min-width: 0 es lo que
+   permite que el enlace se recorte tambien por CSS en las pantallas mas
+   estrechas, donde 24 caracteres todavia no caben. */
+.product-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--sf-ink);
+}
+.product-card__title > a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* El recorte con puntos suspensivos exige `overflow: hidden`, y eso corta por
+     los CUATRO lados, no solo por la derecha. La caja del enlace mide lo que mide
+     su linea, y en desktop la linea va a interlineado 100% —18 sobre 18—, menos
+     que los ~22 que Inter ocupa de ascendente a descendente. Lo que sobresale se
+     lo lleva el recorte: la cola de la "g", la "p", la "y" o la "j".
+
+     El hueco se abre con relleno —el recorte pasa por el borde del RELLENO, no
+     por el del contenido— y se devuelve con un margen negativo del mismo tamano,
+     asi que la fila del titulo sigue midiendo los 18 de la spec y la insignia no
+     se mueve de sitio. En `em` para que sirva en los dos tamanos: a 14 con
+     interlineado 20 ya sobraba hueco y no cambia nada, a 18 son los ~4 que
+     faltaban. */
+  padding-block: 0.2em;
+  margin-block: -0.2em;
+}
+
+/* Element: insignia de promocion — "15%", "2x1". En la fila del nombre pero
+   empujada al fondo derecho: asi cae siempre en el mismo sitio, lo mida lo que
+   mida el platillo, y la columna de insignias se lee de un vistazo por la
+   rejilla. Con un nombre largo el margen automatico no tiene hueco que repartir
+   y la etiqueta queda pegada al recorte, que es donde acaba el titulo. */
+.product-card__promo {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+
+.product-card__description {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--sf-muted);
+}
+
+/* Element: footer — precios a la izquierda, "+" al fondo derecha */
+.product-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  min-height: 28px;
+}
+
+/* Element: pricing — la columna de importes. Dos filas cuando hay promocion:
+   el par de precios y, debajo, lo que ese par significa. */
+.product-card__pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* Element: prices — el par tachado + final. Con promocion lleva los dos; sin
+   ella, solo el precio de lista, que es el mismo elemento. */
+.product-card__prices {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Element: deal — etiqueta de ahorro y aclaracion, bajo los dos precios: es la
+   conclusion de ese par, no un dato al lado. Envuelve porque el boton "+" le
+   deja unos 160 de ancho. */
+.product-card__deal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+/* Element: from — el "Desde" que precede al importe. Solo desktop: en el pie de
+   la tarjeta estrecha compite con el precio, que es lo que se viene a leer. */
+.product-card__from {
+  display: none;
+}
+
+.product-card__price {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--sf-accent);
+}
+
+/* Element: add — el "+". Un dibujo, no un boton: queda debajo del stretched-link,
+   que cubre la tarjeta entera con su ::after de z-index 1, asi que el toque se lo
+   lleva el enlace y pulsarlo es pulsar la tarjeta. Por eso no tiene estados
+   propios: debajo del enlace, ni el raton ni el dedo llegan a el. */
+.product-card__add {
+  display: inline-flex;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background-color: var(--sf-accent);
+  color: var(--sf-white);
+}
+
+/* El "+" de esta tarjeta, en movil, sobre la esquina de abajo a la derecha de la
+   foto, a 8 de sus bordes: 12 de relleno + 154 de foto - 8 - 28 del boton. Se
+   cuelga de la tarjeta y no de la foto porque el marcado es el de desktop, donde
+   va en el pie. Sin foto no hay esquina: se queda en el pie. */
+.product-card:not(.product-card--no-media) .product-card__add {
+  position: absolute;
+  top: calc(12px + 154px - 8px - 28px);
+  right: calc(12px + 8px);
+}
+
+/* Modifier: apagado — la tienda esta cerrada y el platillo no se puede pedir
+   ahora. El acento rebajado al 40%, como las flechas de los destacados en un
+   extremo de la lista (.menu-section__arrow:disabled, en
+   components/MenuSection.astro).
+
+   Alli es `opacity`, que vale porque la flecha va sobre el fondo liso de la
+   pagina. El "+" va a veces sobre la foto, y traslucido la dejaria ver a traves:
+   el rosa saldria manchado y el signo, blanco al 40%, no se leeria. Por eso aqui
+   el 40% va pintado sobre blanco, en dos capas: da el mismo color que la
+   opacidad sobre la tarjeta, pero opaco, y el signo se queda en blanco entero.
+   La clase la comparte el "+" de <MenuCard>. */
+.product-card__add--disabled {
+  background-color: var(--sf-white);
+  background-image: linear-gradient(
+    rgba(var(--sf-accent-rgb), 0.4),
+    rgba(var(--sf-accent-rgb), 0.4)
+  );
+}
+
+/* Modifier: no comprable ahora. Sigue visible y clicable —el detalle existe—
+   pero atenuado. Dos motivos, y en el pie se distinguen:
+
+     uno propio (available: false del catalogo)   en lugar del "+", un .tag con
+                                                  el motivo
+     la tienda esta cerrada                       el "+" se queda, apagado */
+.product-card--unavailable .product-card__media,
+.product-card--unavailable .product-card__title,
+.product-card--unavailable .product-card__description,
+.product-card--unavailable .product-card__pricing {
+  opacity: 0.55;
+}
+/* El area de clic, por encima de las piezas atenuadas.
+
+   `opacity` crea un contexto de apilamiento en cada pieza. El del titulo encierra
+   el ::after del stretched-link —el area de clic de la tarjeta entera—, que fuera
+   de el ya no compite con su z-index 1: las piezas atenuadas que van DESPUES en
+   el marcado se pintaban encima y se quedaban con el clic, y la tarjeta solo
+   respondia en el nombre y en los huecos.
+
+   z-index 1 sube el contexto del titulo, y con el el enlace, por encima de sus
+   hermanas. SIN `position`: le vale por ser un item flex, y con
+   `position: relative` el ::after lo tomaria por caja y el enlace se encogeria
+   al titulo. <MenuCard> lleva la misma regla en su modificador. */
+.product-card--unavailable .product-card__title {
+  z-index: 1;
+}
+.product-card--unavailable:hover {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 5%);
+}
+
+/* --- Desktop -------------------------------------------------------------
+   La tarjeta se pone de pie: la foto arriba, a todo lo ancho, y la ficha debajo.
+   El ancho lo reparte la rejilla (3 columnas con 24 de gutter), asi que aqui no
+   se fija: lo que se fija es el alto de cada parte.
+
+   Spec: 357x330 - foto 180 - cuerpo 150 (padding 20, gap 12) - radius 16
+   180 + 150 = 330 */
+@media (min-width: 768px) {
+  .product-card {
+    gap: 0;
+    min-height: 330px;
+    /* El relleno pasa al cuerpo: la foto llega hasta los bordes. */
+    padding: 0;
+  }
+  /* La foto ya no es una miniatura al lado del texto, sino la cabecera de la
+     tarjeta. Redondea solo por arriba, que es donde toca el borde del panel. */
+  .product-card__media {
+    flex: 0 0 180px;
+    width: 100%;
+    height: 180px;
+    border-radius: 16px 16px 0 0;
+  }
+  .product-card__body {
+    gap: 12px;
+    min-height: 150px;
+    padding: 20px;
+  }
+  .product-card__rank {
+    font-size: 11px;
+  }
+  /* 18 no esta en la escala de tokens: es el unico nombre de este tamano del
+     diseno, y anadir un token para una regla lo unico que hace es dar un nombre
+     mas que recordar. */
+  .product-card__title {
+    font-size: 18px;
+    line-height: 1;
+  }
+  /* La descripcion NO baja a interlineado 100%: recorta a dos lineas, y a 1 las
+     dos se tocarian. El resto de la ficha si va a 100% porque es de una linea. */
+  .product-card__description {
+    line-height: 20px;
+  }
+  .product-card__from,
+  .product-card__price {
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--sf-accent);
+  }
+  .product-card__from {
+    display: inline;
+  }
+  /* 34x34 en desktop. La clase la comparte el "+" de <MenuCard>, asi que cambia
+     en las dos tarjetas. */
+  .product-card__add {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+    border-radius: 17px;
+  }
+  /* Vuelve al pie, al final de la fila del precio. */
+  .product-card:not(.product-card--no-media) .product-card__add {
+    position: static;
+  }
+}
+
+/* Los precios bajan de linea cuando no caben. En la tarjeta estrecha —los
+   destacados van tres por vista, unos 246 de ancho (ver
+   components/MenuSection.astro), y la de las categorias deja el ancho a la foto—
+   "Desde", el precio y el tachado no caben en una linea junto al "+", y el
+   tachado se le metia debajo. Asi baja a una segunda linea, bajo el precio que
+   justifica; en una tarjeta ancha no cambia nada. */
+@media (min-width: 768px) {
+  .product-card__prices {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+}
+
+/* Este bloque lo comparten <OptionGroup>, <ProductCard> y <PaymentOption>.
+   Se repite en los tres, y no en un archivo comun, porque cada uno vive en
+   una pantalla distinta —la ficha, la portada y el pago—: ninguna pagina
+   carga mas de una copia. Si se cambia, hay que cambiarlo en los tres. */
+
+/* ---------------------------------------------------------------------------
+   Block: tag  (sobre .badge de Bootstrap)
+   ---------------------------------------------------------------------------
+   Bootstrap aporta forma, padding y tipografia via .badge. Aqui solo quedan
+   el alto de la spec y los dos esquemas de color.
+
+   Spec: alto 24 - radius 32 - padding 4/8 - label Inter 600 12/16
+   --required: bg #D5AA531A - color #4F46E5
+   --optional: bg #EAECF0   - color #616673
+   --------------------------------------------------------------------------- */
+.tag {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  white-space: nowrap;
+}
+
+/* Modifier: obligatorio */
+.tag--required {
+  background-color: var(--sf-accent-tint);
+  color: var(--sf-indigo);
+}
+
+/* Modifier: opcional */
+.tag--optional {
+  background-color: var(--sf-border);
+  color: var(--sf-ink-soft);
+}
+
+/* Viene de la familia de promociones, que comparten la portada, la ficha, el
+     pedido y el cierre. Cada consumidor lleva solo las piezas que pinta: en
+     ninguna pantalla coinciden dos, asi que nadie carga la misma regla dos
+     veces. Si se toca una, mirar quien mas la tiene. */
+
+/* Block: promo-save — "Ahorra $28.35". Solo cuando el ahorro existe de verdad:
+   un `special` que no baja la variante de referencia llega con savings 0 y
+   entonces esta etiqueta no se pinta. */
+.promo-save {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 100px;
+  background-color: var(--sf-success-tint);
+  color: var(--sf-success);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* Block: promo-note — la aclaracion del descuento que solo alcanza a algunas
+   variantes: "Precio especial en 1 de 3 tamanos". Sin ella, una insignia sobre
+   un precio que no baja —el de la variante mas barata, que se queda fuera—
+   parece un descuento que no se aplico. */
+.promo-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--sf-muted);
+}
+
+/* Block: price-was — el precio de lista. Tachado, nunca subrayado: es la
+   convencion universal y es lo que implementa la referencia del panel. */
+.price-was {
+  color: var(--sf-muted);
+  font-size: 12px;
+  font-weight: 400;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  white-space: nowrap;
+}

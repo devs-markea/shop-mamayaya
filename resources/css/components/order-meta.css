@@ -1,0 +1,138 @@
+/* ---------------------------------------------------------------------------
+   Block: order-meta
+   ---------------------------------------------------------------------------
+   Dos pares icono + etiqueta, a 4 del gutter. Son dos por MODO DE ENTREGA y
+   ocupan el mismo sitio: a domicilio, el plazo y el costo del envio; para
+   recoger, el plazo de recoleccion y el enlace al mapa.
+
+   SOLO MOVIL. En desktop la barra se queda en una linea —switch y categorias—
+   y este bloque entero no se pinta; el mapa se sigue abriendo desde el pin de
+   la cabecera, que es de donde cuelga la hoja.
+
+   El relevo lo hace CSS con :has(), leyendo el radio del switch —el mismo
+   mecanismo de .store-closed—. El estado ya vive en el DOM (ver components/DeliverySwitch.astro),
+   asi que no hace falta JavaScript que lo copie a una clase: el par correcto
+   esta pintado antes de que cargue ningun script, y sin :has() se queda el de
+   "A domicilio", que es como llega quien entra por primera vez.
+
+   Spec: contenedor 178x16 - gap 16 - icono 16 dorado - label Inter 500 12/16
+   min-height en lugar de height para que nada se recorte si el usuario sube el
+   tamano de fuente del sistema.
+
+   Con 4 de relleno por los cuatro lados: la fila mide 24 —los 16 del contenido y 4
+   arriba y abajo—, que es lo que cuenta la barra de pedido para su alto (ver
+   components/OrderBar.astro).
+   --------------------------------------------------------------------------- */
+.order-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  min-height: 16px;
+  margin: 0;
+  padding: 4px;
+}
+
+.order-meta__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.order-meta__icon {
+  color: var(--sf-accent);
+}
+
+/* El rotulo y su valor. En flex para que el valor mida su propia linea —16— y no
+   la de la pagina: como texto suelto, la caja tomaba los 20 de interlineado del
+   <body> y la fila de metas crecia de 16 a 20, con el plazo 2 mas bajo que la
+   direccion de al lado. */
+.order-meta__text {
+  display: flex;
+  align-items: center;
+}
+
+/* Modifier: un valor que puede no caber —la direccion, hasta 60 caracteres—. Cede
+   el ancho que falte y se recorta; el texto entero queda en el `title`. El
+   `min-width: 0` en cada nivel es lo que deja encoger a un hijo flex por debajo de
+   su texto. */
+.order-meta__item--truncate,
+.order-meta__item--truncate .order-meta__text {
+  min-width: 0;
+}
+.order-meta__item--truncate .order-meta__value {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-meta__value {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--sf-ink);
+  white-space: nowrap;
+}
+
+/* Que significa el valor ("Tiempo envio", "Ubicacion"). No se pinta: en movil no
+   cabe —y ahi el icono ya lo insinua—, y en desktop no hay barra donde ponerlo.
+   Sigue en el marcado, dentro de .order-meta__text con su valor, porque es lo
+   que ese valor significa y el dia que la barra tenga sitio se lee sin tocar
+   ningun componente. */
+.order-meta__name {
+  display: none;
+}
+
+/* "Ver mapa": abre la hoja de ubicacion. Subrayado porque es lo unico de la
+   fila sobre lo que se pulsa —el resto son datos— y el subrayado lo dice sin
+   necesidad de un boton que rompa la altura de 16.
+
+   El relleno del hover se compensa con margenes negativos: la pastilla crece
+   hacia fuera y el texto se queda donde estaria sin ella, asi que la fila no se
+   mueve al anadirla. */
+.order-meta__link {
+  padding: 4px 8px;
+  margin-block: calc(4px * -1);
+  margin-inline: calc(8px * -1);
+  border-radius: 8px;
+  color: var(--sf-ink);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.order-meta__link:hover {
+  background-color: var(--sf-accent-tint);
+  color: var(--sf-accent-hover);
+}
+
+/* --- Relevo por modo de entrega ---------------------------------------------
+   Predeterminado: se ve el par de "A domicilio". El de recoger espera oculto en
+   el marcado, no en un segundo viaje al servidor. */
+.order-meta__item[data-mode=pickup] {
+  display: none;
+}
+
+.order-bar__inner:has([name=delivery][value=recoger]:checked) .order-meta__item[data-mode=delivery] {
+  display: none;
+}
+.order-bar__inner:has([name=delivery][value=recoger]:checked) .order-meta__item[data-mode=pickup] {
+  display: inline-flex;
+}
+
+/* --- Desktop -------------------------------------------------------------
+   Aqui no se pintan: ni los rotulos ni los datos. La fila que ocupaban la
+   reparten el switch y las categorias, que suben a compartir linea (ver
+   components/OrderBar.astro).
+
+   Se ocultan enteras y no una a una: son cuatro metas de dos modos, y dejar
+   solo el relevo a medias —el plazo sin su rotulo, el mapa sin el plazo— seria
+   una barra distinta segun el modo en lugar de una barra sin metas. */
+@media (min-width: 768px) {
+  .order-meta {
+    display: none;
+  }
+}

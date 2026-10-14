@@ -1,0 +1,105 @@
+/* ---------------------------------------------------------------------------
+   Block: order-bar
+   ---------------------------------------------------------------------------
+   Spec mobile: switch (44) + meta (24, con su relleno de 4) - gap 18 - padding 0 20 8
+   44 + 18 + 24 + 8 = 94
+
+   Las categorias ya no van aqui: en movil son las tabs que la siguen
+   (components/CategoryNav.astro), fuera de la barra porque van pegadas arriba al
+   bajar y un `sticky` no sale de su contenedor; en desktop, la columna lateral
+   (components/MenuSidebar.astro).
+
+   min-height en lugar de height para que nada se recorte si el usuario sube
+   el tamano de fuente del sistema.
+
+   ANCLADA EN MOVIL, a 32: 60 por detras de la barra de arriba, que mide 92 y va
+   por encima. Al bajar por el catalogo el switch (44) y casi todo su hueco se meten
+   bajo ella, y a la vista se quedan las metas. Y de ella cuelgan las tabs de
+   categorias, que van dentro (el <slot>) para que la barra y las tabs sean una
+   sola pieza: se mueven juntas, tambien en el rebote del final de la pagina, donde
+   una pieza fija y otra anclada se separaban.
+
+   En desktop son el buscador y el switch: las metas no se pintan (ver
+   components/OrderMeta.astro).
+   --------------------------------------------------------------------------- */
+/* Mismo fondo que la pagina, igual que la barra de movil: entre la cabecera y
+   el catalogo no hay tres franjas de color sino una sola continua, y lo unico
+   que se levanta sobre ella son las tarjetas. */
+.order-bar {
+  position: sticky;
+  top: 32px;
+  z-index: 1010;
+  min-height: 94px;
+  padding: 0 20px 8px;
+  background-color: var(--sf-body-bg);
+}
+
+.order-bar__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  max-width: 1140px;
+  margin-inline: auto;
+}
+
+/* --- Desktop -------------------------------------------------------------
+   La columna se convierte en una fila: sin las metas quedan el buscador, a la
+   izquierda y ocupando lo que sobre, y el switch, a 48. */
+@media (min-width: 768px) {
+  /* Sin fondo, sin borde y sin aire propio: en desktop la barra deja de ser una
+     franja de cabecera y pasa a ser un bloque mas de la portada, entre el panel
+     de bienvenida y la lista. El hueco que la separa de los dos lo pone la pila
+     (ver pages/index.astro), asi que sumar aqui el suyo lo duplicaria.
+     Sin fondo, sin borde y sin aire propio —tampoco el lateral—: el margen de
+     los lados lo pone la pila, igual que el hueco de arriba y abajo. */
+  .order-bar {
+    position: static;
+    min-height: 0;
+    padding: 0;
+    border-bottom: 0;
+    background-color: transparent;
+  }
+  /* Y sin tope de ancho: la fila llega hasta donde llega la rejilla, que es lo
+     que alinea el buscador con la primera tarjeta y el switch con la ultima. */
+  .order-bar__inner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 48px;
+    max-width: none;
+  }
+  /* La pista deja de ocupar el ancho de la pantalla y se mide por sus dos
+     opciones, de 136 cada una: 136 x 2 + 4 x 2 de padding = 280. Va aqui y no en
+     el bloque del switch porque es cosa de esta fila: en /mamayaya/datos la misma pista
+     llena la columna de 350 del formulario, como cualquier otro campo.
+
+     Tampoco cede ancho: encogerla parte los rotulos de las dos opciones.
+
+     LOS 136 SON UN SUELO (min-width), NO UNA BASE (flex-basis)
+     Con `flex: 0 0 136px` la medida solo existia dentro del reparto, y con la
+     pista en `width: auto` hay que saber cuanto miden las opciones ANTES de
+     repartir nada. Justo ahi los navegadores no coinciden: Chrome y Edge cuentan
+     la base de 136, mientras que Firefox y Safari miden el rotulo, que es mas
+     corto. Salia una pista mas estrecha que sus dos pastillas de 136, y con ellas
+     asomando por fuera de su propio fondo gris.
+
+     De suelo, en cambio, la medida la respetan los cuatro: min-width acota la
+     aportacion de cada opcion se calcule como se calcule, y la base pasa a ser el
+     rotulo, que es lo unico que todos miden igual. Comprobado en Firefox: la
+     pista vuelve a los 280, los mismos que da Chrome. Y de regalo, un rotulo mas
+     ancho de lo previsto —otra fuente, un idioma mas largo— ensancha su pastilla
+     en lugar de desbordarla.
+
+     La pista no necesita suelo propio: sale de sus dos opciones, que ya lo
+     tienen. La medida vive en un solo sitio. */
+  .order-bar__inner .switch {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+  }
+  .order-bar__inner .switch__option {
+    flex: 1 1 auto;
+    min-width: 136px;
+  }
+}

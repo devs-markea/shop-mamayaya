@@ -1,0 +1,455 @@
+/* ---------------------------------------------------------------------------
+   Block: footer
+   ---------------------------------------------------------------------------
+   Pie de pagina. Spec (desktop): padding 48/160/32, gap 32, fondo blanco.
+
+   En movil no hay spec: es el mismo pie, apilado. El logo arriba, las columnas
+   debajo —"Conócenos", "Síguenos" y las promociones, una bajo otra—, la divisoria
+   y el aviso. Las medidas son las de la tienda en movil,
+   20 de gutter y 24 entre piezas, y lo de la spec se aplica de md en adelante (ver
+   el final de este bloque).
+
+   Hasta ahora en movil no se pintaba: en 375 las columnas eran una torre de
+   enlaces debajo de una rejilla que ya se lee scrolleando. La torre ya no existe
+   —se fueron las categorias y la frase de presentacion— y lo que queda cabe.
+
+   El `color: #FFFFFF` de la spec es el FONDO. Cada rotulo trae su propio color
+   —#6C757D, #D5AA53, #9CA3AF—, asi que no queda texto al que ese blanco pueda
+   referirse; sobre el fondo gris de la pagina el pie es una superficie, como la
+   barra de arriba. Es la misma clase de desliz que ya documenta el README en tres
+   specs, ahi al reves.
+
+   Los 160 de sangria son un MAXIMO, no una medida fija: son (1440 - 1120) / 2
+   del lienzo de la spec, y por debajo el clamp cae al gutter de la pagina. El
+   contenido para en 1140 para no separarse de la rejilla de platillos. La
+   misma sangria la usa .navbar-desktop, que es la otra pieza a ancho completo.
+   --------------------------------------------------------------------------- */
+/* 32 arriba y abajo, y el gutter de movil a los lados.
+
+   El pie acaba en el aviso de derechos, como en desktop: no reserva debajo el
+   hueco de lo que flota —el chat, el carrito de la portada—, que al final de la
+   pagina pasa por encima de el, igual que el chat en desktop. Abajo solo se suma
+   el safe-area, para que el aviso no caiga bajo la barra de gestos del iPhone. */
+.footer {
+  padding: 32px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+  background-color: var(--sf-white);
+}
+.footer__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1140px;
+  margin-inline: auto;
+}
+/* Element: top — en movil, la marca y debajo las columnas de "Conócenos",
+   "Síguenos" y las promociones; en desktop, la marca a la izquierda y las
+   columnas a la derecha
+   (ver el final de este bloque).
+
+   32 entre el logo y las columnas, los mismos que separan las dos columnas entre
+   si: con menos, el logo se leeria pegado a la primera. */
+.footer__top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 32px;
+}
+.footer__brand {
+  display: flex;
+  flex-direction: column;
+}
+/* El enlace sin alto propio: envuelve al logo. La spec pedia una caja de 160x36,
+   que era la del logo anterior —horizontal, 5.8:1—. Este es un emblema cuadrado
+   con el nombre dentro, y a 36 de alto no se leeria. */
+.footer__brand-link {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  transition: opacity 160ms ease;
+}
+.footer__brand-link:hover {
+  opacity: 0.8;
+}
+/* 72 en movil y 96 en desktop. Mas que los 40 de la barra de arriba, porque en el
+   pie el logo es la pieza principal y no tiene una fila de 24 que respetar; menos
+   que los 96, que en una pantalla de 375 se comerian el pie entero. */
+.footer__logo {
+  width: auto;
+  height: 72px;
+}
+/* Element: columns — "Conócenos", "Síguenos" y las promociones. En movil,
+   "Conócenos" y "Síguenos" en la misma fila, y las promociones debajo, a todo el
+   ancho: el campo no tiene otra medida que la del pie. En desktop, las tres una
+   al lado de la otra (ver el final de este bloque). */
+.footer__columns {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: 32px;
+}
+/* Element: group — una columna: un titulo y debajo su lista */
+.footer__group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* La spec pide letter-spacing 100%, que en Inter 14 son 14px por letra:
+   "C O N Ó C E N O S" pasaria de 200 y dejaria de leerse como una palabra. Se usa
+   0.1em, el tracking con el que se compone un rotulo en versales, que es lo que
+   el valor queria decir. */
+.footer__heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sf-accent);
+}
+/* Element: divider — la linea de 1 de la spec (height 0 + borde) */
+.footer__divider {
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--sf-border);
+  opacity: 1;
+}
+/* 13px: el cuerpo menor del pie. No esta en la escala (12/14/16/24) y no la
+   abre, igual que el 15 de los rotulos de la barra de desktop.
+
+   20 de interlineado en movil, el del cuerpo: el aviso lleva el nombre de la
+   tienda, y en un telefono estrecho puede partirse en dos lineas que con el 1 de
+   desktop se tocarian.
+
+   Centrado en movil y en desktop: cierra el pie a todo su ancho, por debajo de
+   la divisoria, en lugar de colgar de la columna de la marca. */
+.footer__copyright {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--sf-placeholder);
+  text-align: center;
+}
+/* La negrita del aviso es el destacado de la marca: en el acento, que es el color
+   del tema (ver src/lib/theme.ts), no un rosa escrito aqui. Con otro tema cambia
+   con el. Asi quien escriba "© 2026 **Mamá Yaya**…" en el panel obtiene el aviso
+   de siempre.
+
+   Se estila por su posicion y no con una clase porque el HTML del negocio no trae
+   ninguna: el backend no deja pasar atributos. Un solo selector cubre los dos
+   avisos, el del panel y el de respaldo. Llega al HTML inyectado porque estos
+   estilos son `is:global`; con el ambito de Astro no lo alcanzaria. */
+.footer__copyright strong {
+  font-weight: 700;
+  color: var(--sf-accent);
+}
+.footer__copyright em {
+  font-style: italic;
+}
+/* Element: list — la lista de cada columna, una entrada por renglon: la
+   ubicacion y el horario en "Conócenos", las redes en "Síguenos". Es la misma
+   en las dos, para que se lean como del mismo rango. */
+.footer__list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+}
+/* Element: item — una entrada: el glifo a 20 y su rotulo a 8, en 14/20 gris como
+   el resto de letra secundaria del pie, y los dos al dorado en hover. En
+   "Conócenos" es un <button> que abre su hoja; en "Síguenos", un enlace al
+   perfil. El SVG queda `aria-hidden`, como el resto de Icon y BrandIcon: el
+   nombre lo da el rotulo.
+
+   El blanco es mas alto que el renglon: 32, para el dedo. Los 6 de relleno los
+   devuelve el margen negativo, asi que la lista no se mueve de sitio, y 32 es
+   justo lo que hay de renglon a renglon —20 de alto y 12 de hueco—: los blancos
+   se tocan sin pisarse. El relleno, la letra y el color le ganan al reseteo de
+   .btn-plain en los botones por lo mismo que en .navbar__action: los estilos del
+   componente van detras de base.css. */
+.footer__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-block: -6px;
+  padding-block: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--sf-muted);
+  text-align: left;
+  transition: color 160ms ease;
+}
+.footer__item:hover {
+  color: var(--sf-accent);
+}
+/* El glifo no cede sitio al rotulo. Los de <Icon> ya lo traen; los de las redes
+   no, y con un rotulo largo —los escribe el negocio— el texto se parte en dos
+   renglones y el glifo se encogia con el. */
+.footer__item > svg {
+  flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------------------
+   Element: promo — la columna de las promociones. Spec (desktop): 291 de ancho,
+   y dos piezas a 16: el cuerpo —la pregunta y el campo— y el boton.
+
+   El #E6427A de la spec es el acento, como en las demas specs de la tienda: se
+   escribe con el token del tema (ver src/lib/theme.ts).
+   --------------------------------------------------------------------------- */
+.footer__promo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+/* La pregunta y el campo, a 12, el mismo hueco que hay entre el titulo y la
+   lista en las otras columnas. La spec da 112 de cuerpo: 32 de pregunta (dos
+   renglones de 16), 12 y los 67 del campo son 111, el pixel que Figma redondea. */
+.footer__promo-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+/* No es .footer__heading: la spec la quiere a 16 y en 500, sin el tracking de
+   los rotulos en versales. */
+.footer__promo-heading {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--sf-accent);
+}
+/* El campo y, a 6 por debajo, la raya de 1 en el acento: 60 + 6 + 1 = los 67 de
+   la spec. La raya es decorativa y va como ::after, no como elemento. */
+.footer__promo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.footer__promo-field::after {
+  content: '';
+  height: 1px;
+  background-color: var(--sf-accent);
+}
+/* Spec: 60 de alto, radio 4, fondo #F8F9FB (--sf-body-bg) y sin borde. La letra
+   y el relleno no vienen en la spec: los de los campos del pedido, 14/20 y 16 a
+   los lados. */
+.footer__promo-input {
+  width: 100%;
+  height: 60px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 4px;
+  background-color: var(--sf-body-bg);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sf-ink);
+}
+.footer__promo-input::placeholder {
+  color: var(--sf-placeholder);
+  opacity: 1;
+}
+/* Spec: 29 de alto, relleno 6/16, radio 100 y el acento de fondo, con el rotulo
+   en Inter 600 14 blanco. Con el 1 de interlineado de la spec, 14 + 6 + 6 dan 26,
+   no 29: Figma mide el renglon con la altura natural de Inter. Se fija el alto y
+   se centra el rotulo, que es la caja que dibuja la spec.
+
+   Del ancho de la columna no se estira: se queda en su rotulo, 115. El hover es
+   el de .btn-primary. Los estilos del componente le ganan al reseteo de
+   .btn-plain porque van detras de base.css.
+
+   El rotulo no se parte: el alto es fijo, y un segundo renglon se saldria de la
+   pildora. Con los 24 caracteres que deja el panel mide unos 200, lo que piden
+   las promociones como minimo. */
+.footer__promo-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  height: 29px;
+  padding: 0 16px;
+  border-radius: 100px;
+  background-color: var(--sf-accent);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--sf-white);
+  transition: background-color 160ms ease;
+}
+.footer__promo-button:hover {
+  background-color: var(--sf-accent-hover);
+}
+/* Mientras el registro va de camino (ver el script del final). */
+.footer__promo-button[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
+/* Element: promo-status — el aviso de debajo del boton: el error del numero o
+   la confirmacion. La letra es la de <FormError> (Inter 500 12/16), y el color
+   de error tambien: el indigo es el aviso de campo que falta en toda la tienda.
+   La confirmacion va en el verde de "algo salio bien". */
+.footer__promo-status {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--sf-indigo);
+}
+.footer__promo-status[data-tone='success'] {
+  color: var(--sf-success);
+}
+
+/* --- Movil ---------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+  /* La barra de accion, al fondo de la PRIMERA pantalla, como antes del pie. La
+     manda ahi la cadena flex —.page > main > form, y `margin-top: auto` en la
+     barra (ver components/ActionBar.astro)—, pero con el pie en la misma columna
+     el alto se reparte entre los dos: en una pantalla corta —un pedido de una
+     linea, un acuse— la barra quedaria a media altura con el pie debajo.
+
+     Con un <main> de al menos una pantalla el pie empieza por debajo del borde.
+     El sticky de la barra la sigue pegando abajo mientras se recorre el
+     contenido, y al acabarse el <main> se detiene y el pie asoma debajo.
+
+     svh y no dvh: es el alto con la barra del navegador a la vista, y no cambia
+     al scrollear. Con dvh el pie se recolocaria cada vez que esa barra se
+     esconde. */
+  .page:has(.action-bar) > main {
+    min-height: 100svh;
+  }
+
+  /* Y una raya entre la barra y el pie. Los dos son blancos, y al final de la
+     pagina, con la barra detenida encima del pie, se leerian como una sola
+     pieza. Es la misma raya que la barra lleva arriba. */
+  .page:has(.action-bar) .footer {
+    border-top: 1px solid var(--sf-border);
+  }
+
+  /* "Conócenos" y "Síguenos" en la misma fila, cada una en su mitad, y las
+     promociones en la fila de abajo, a todo el ancho. Lo pidio el negocio.
+     Mitades iguales y no el ancho de cada lista: asi "Síguenos" empieza siempre
+     en el mismo sitio, sea cual sea el turno del reloj. Con una sola de las dos,
+     se queda sola en la fila, alineada a la izquierda.
+
+     24 entre las dos y no los 32 de las filas: desde 360 la mitad mide 148 o
+     mas, y el turno del reloj —"12:00 - 23:30 h." con su icono, 137— cabe en un
+     renglon. Por debajo, en 320, la mitad se quedaria en 128: el `max-content`
+     no deja que una columna mida menos que su lista, y lo que falta lo cede
+     "Síguenos", que con sus redes cabe de sobra en lo que queda.
+
+     Flex con salto de linea y no rejilla: en una rejilla las promociones, que
+     ocupan las dos columnas, empujarian el minimo de ambas con su pregunta en un
+     solo renglon, y la pagina se saldria de la pantalla. */
+  .footer__columns {
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: 24px;
+  }
+  /* `fit-content` y no `max-content` desde que los textos los escribe el negocio:
+     mide lo mismo mientras la lista quepa en el pie, y cuando no cabe —un titulo
+     de 30 caracteres mide 323, mas que el pie de un telefono de 360— se queda en
+     el ancho del pie y el texto se parte, en lugar de sacar la pagina de la
+     pantalla. */
+  .footer__group {
+    flex: 1 0 0;
+    min-width: fit-content;
+  }
+  .footer__promo {
+    flex-basis: 100%;
+  }
+
+  /* Las promociones se apartan de la fila de arriba a 48, y no a los 32 del
+     hueco de .footer__columns, porque son otra cosa: aquellas dos son enlaces,
+     esta un formulario. Los 16 que faltan van como margen, y solo detras de una
+     columna: sin ninguna de las dos, el formulario queda a los 32 del logo como
+     cualquier columna. */
+  .footer__group + .footer__promo {
+    margin-top: 16px;
+  }
+}
+
+/* --- Desktop -------------------------------------------------------------- */
+@media (min-width: 768px) {
+  .footer {
+    /* 48 arriba y 32 abajo. Los 48 no estan en la escala del sistema —32 es el
+       ultimo escalon— y se escriben sumando dos que si estan, para no abrir un
+       token que usaria un solo bloque. */
+    padding: calc(32px + 16px) clamp(32px, calc((100% - 1120px) / 2), 160px) 32px;
+  }
+  .footer__inner {
+    gap: 32px;
+  }
+  /* La marca a la izquierda y las columnas contra el borde derecho, juntas y no
+     repartidas a lo ancho: asi la marca sigue sola y lo demas se lee como un
+     bloque. Arriba las dos: junto a un logo de 96, las columnas se leen desde su
+     titulo. */
+  .footer__top {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .footer__logo {
+    height: 96px;
+  }
+  /* Una al lado de la otra, a 48: los mismos que el pie suma para su aire de
+     arriba, y por lo mismo escritos como suma. El bloque ocupa lo que deja la
+     marca y las columnas se pegan a su borde derecho.
+
+     LOS TEXTOS LOS ESCRIBE EL NEGOCIO (ver `texts` en el frontmatter), y el panel
+     deja 30 caracteres por titulo y por renglon: a ese largo una columna mediria
+     mas de 320, y con dos asi el pie se salia de la pantalla y las promociones se
+     quedaban sin ancho. Tres reglas lo impiden, y con los textos de siempre no
+     cambian nada:
+
+       las columnas de enlaces miden lo que su lista, con un tope de 200: de ahi en
+       adelante el texto se parte en renglones. El turno del reloj —137 con su
+       icono— y "Abierto las 24 horas" —168— caben enteros.
+
+       las promociones piden 200 y crecen hasta los 291 de la spec con lo que
+       sobre. En 768 sobran 47 y se quedan en 247; desde 992, en sus 291.
+
+       si ni asi caben las tres, las promociones bajan al renglon siguiente en
+       lugar de aplastarse. Solo pasa por debajo de 992 y con las dos columnas
+       de enlaces en su tope. */
+  .footer__columns {
+    flex: 1 1 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-self: flex-start;
+    min-width: 0;
+    gap: calc(32px + 16px);
+  }
+  .footer__group {
+    flex: 0 0 auto;
+    max-width: 200px;
+  }
+  .footer__promo {
+    flex: 1 1 200px;
+    max-width: 291px;
+  }
+  .footer__copyright {
+    line-height: 1;
+  }
+  /* El aviso del negocio puede traer `<br>`, o partirse solo con sus 200
+     caracteres: el 1 de arriba es de un aviso de un renglon, y juntaria los dos. */
+  .footer__copyright--rich {
+    line-height: 20px;
+  }
+}
+
+/* De lg en adelante las columnas se separan a 80, y no a 48. Por debajo no hay
+   sitio: en 768 los 80 dejarian el campo de las promociones en 183, y la
+   pregunta en tres renglones. Desde 992 caben con el campo a sus 291 enteros, y
+   con las dos columnas de enlaces en su tope de 200 todavia caben las tres. */
+@media (min-width: 992px) {
+  .footer__columns {
+    gap: calc(32px + 32px + 16px);
+  }
+}

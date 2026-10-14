@@ -1,0 +1,81 @@
+/* ---------------------------------------------------------------------------
+   Block: switch  (sobre .btn-check de Bootstrap)
+   ---------------------------------------------------------------------------
+   Dos opciones excluyentes: "A domicilio" / "Para recoger".
+
+   La maqueta lo resolvia con <button> y JS que alternaba clases. Con .btn-check
+   son dos <input type="radio">: el estado lo lleva el DOM, funciona sin
+   JavaScript, es navegable con flechas y se envia con el formulario.
+
+   La pista NO lleva .btn-group: sus reglas (0-3-0 y 0-4-0) cuadran las
+   esquinas internas de cada opcion (border-end-radius en la primera,
+   border-start-radius en la segunda), asi que la pastilla activa se veia
+   cortada por el lado interior. Ademas metia margin-left: -1px y
+   flex: 1 1 auto. Aqui la pista es un flex propio y cada opcion, una pastilla.
+
+   Spec: pista 350x44 - radius 12 - padding 4 - bg #EAECF0
+   opcion 171x36 - radius 8 - Inter 600 14/20
+   350 - 8 (padding) = 342 -> 2 x 171, por eso flex: 1 1 0
+
+   Los 350 son los del artboard de 390. En movil la pista no tiene tope: va de
+   lado a lado de su contenedor, mida lo que mida la pantalla, y las dos opciones
+   se reparten lo que haya. El tope de 350 vuelve en desktop, mas abajo.
+   --------------------------------------------------------------------------- */
+.switch {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  height: 44px;
+  padding: 4px;
+  border-radius: 12px;
+  background-color: var(--sf-border);
+}
+
+.switch__option {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  min-width: 0;
+  padding-block: 0;
+  padding-inline: 8px;
+  border-radius: 8px; /* 12 de la pista - 4 de padding */
+  background-color: transparent;
+  color: var(--sf-muted);
+  white-space: nowrap;
+  user-select: none;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.switch__option:hover {
+  color: var(--sf-ink);
+}
+
+/* Estado: opcion activa. Sustituye al modifier --active de la maqueta. */
+.btn-check:checked + .switch__option, .btn-check:checked + .switch__option:hover {
+  background-color: var(--sf-accent);
+  color: var(--sf-white);
+}
+
+.btn-check:focus-visible + .switch__option {
+  outline: 2px solid var(--sf-accent);
+  outline-offset: 2px;
+}
+
+/* --- Desktop -------------------------------------------------------------
+   La pista sigue midiendo lo que le den: en /mamayaya/datos llena la columna de 350 del
+   formulario, como cualquier otro campo. Quien la encoge a sus dos opciones de
+   136 es la barra de la portada, porque alli comparte linea con las categorias
+   y el ancho es suyo, no del switch. Ver components/OrderBar.astro.
+
+   Y aqui vuelve el tope de 350: la columna de /mamayaya/datos es mas ancha que
+   en movil, y sin el la pista la cruzaria entera. Queda arrimada al borde de la
+   columna, donde empiezan los campos. */
+@media (min-width: 768px) {
+  .switch {
+    max-width: 350px;
+  }
+  .switch__option {
+    padding-inline: 20px;
+  }
+}

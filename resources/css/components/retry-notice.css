@@ -1,0 +1,99 @@
+/* ---------------------------------------------------------------------------
+   Block: retry-notice
+   ---------------------------------------------------------------------------
+   El aviso de fallo con su reintento. Lo montan la portada —en el sitio de la
+   rejilla—, la ficha —en el sitio del platillo— y el pedido —en el sitio de sus
+   lineas—, que son contextos con alineacion distinta: centrado en la portada y en
+   el pedido, a la izquierda en la ficha.
+
+   Por eso el bloque NO fija `text-align` ni margenes exteriores: hereda la
+   alineacion de quien lo monta y se limita a apilar sus piezas. Quien no tenga un
+   contenedor que centre por el, pide el modifier --center.
+   --------------------------------------------------------------------------- */
+.retry-notice {
+  display: flex;
+  flex-direction: column;
+  /* align-items de start para que el enlace no se estire a todo lo ancho; el eje
+     horizontal lo resuelve el margen automatico de .retry-notice__action, que sigue
+     al text-align heredado. */
+  gap: 8px;
+}
+
+/* Modifier: centrado por su cuenta, para las pantallas que lo montan en un
+   contenedor alineado a la izquierda. */
+.retry-notice--center {
+  text-align: center;
+}
+
+/* Element: el aviso. Inter 400 14/20 en gris — es la misma letra de servicio que ya
+   usaba .product-list__notice, que es lo que este bloque vino a sustituir. */
+.retry-notice__body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--sf-muted);
+}
+
+/* Element: la cuenta atras. Un punto por debajo del aviso —12/16— porque es el
+   acompanamiento, no la noticia: dice que algo va a pasar solo, y quien no quiera
+   esperar tiene el enlace justo debajo. */
+/* El codigo del fallo. Misma letra que la cuenta atras —acompana, no compite con el
+   aviso— y `user-select: all` para que un clic seleccione el codigo entero: quien lo
+   reporta suele copiarlo, y a mano se corta por el guion. */
+.retry-notice__code {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sf-muted);
+  user-select: all;
+}
+
+.retry-notice__countdown {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--sf-muted);
+  /* Tabular para que el numero no mueva la frase al bajar de 12 a 9. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Element: la salida manual. Contorneado y en negro, el mismo patron que
+   .store-closed__action: es una accion secundaria y pintarla dorada la haria pasar por
+   el boton de comprar. Alto 44 por el area tactil minima.
+
+   `margin-inline: auto` con `width: fit-content` es lo que hace que siga al text-align
+   del contenedor: centrado en la portada, pegado a la izquierda en la ficha. */
+.retry-notice__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-width: 160px;
+  height: 44px;
+  margin-block-start: 4px;
+  padding-inline: 20px;
+  border: 1px solid var(--sf-border);
+  border-radius: 12px;
+  background-color: var(--sf-white);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--sf-ink);
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+.retry-notice__action:hover {
+  background-color: var(--sf-body-bg);
+  color: var(--sf-ink);
+}
+.retry-notice__action:active {
+  background-color: var(--sf-border);
+}
+
+/* El centrado. `text-align: center` no alinea una caja flex, asi que el margen
+   automatico es lo que lo consigue — y en la ficha, sin ninguno de los dos
+   contenedores, `margin-inline` se queda en su valor y el enlace va a la izquierda. */
+.product-list__notice .retry-notice__action,
+.retry-notice--center .retry-notice__action {
+  margin-inline: auto;
+}

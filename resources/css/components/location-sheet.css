@@ -1,0 +1,51 @@
+/* ---------------------------------------------------------------------------
+   Block: location-sheet
+   ---------------------------------------------------------------------------
+   Contenido de la hoja de ubicacion: el mensaje del negocio —o, sin el, la
+   direccion escrita— y el boton que abre Google Maps.
+
+   Sin spec de Figma: el boton es el de accion del proyecto (44 de alto, radius 12,
+   dorado) y el texto, el tipo de dato de las tarjetas.
+
+   El texto y el boton son independientes: con solo texto la hoja se queda sin
+   boton, y con solo enlace el texto se sustituye por una pista.
+   --------------------------------------------------------------------------- */
+/* Element: mensaje y direccion — Inter 500 14/20. Son el mismo sitio de la hoja
+   con dos origenes, y se leen igual. */
+.location-sheet__message,
+.location-sheet__address {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--sf-ink);
+}
+
+/* El mensaje llega como HTML y trae sus saltos en `<br>` —dos seguidos donde el
+   negocio dejo un renglon en blanco— y sus negritas en `<strong>`, que sobre el
+   500 del texto salen en 700 (`bolder`). No necesita nada mas.
+
+   La direccion es texto llano y de una linea desde el 2026-10-07. El `pre-line`
+   se queda por la API de antes de esa fecha, que la mandaba con sus `\n` y sin
+   `message`: sin el, aquel mensaje se leeria como un solo parrafo corrido. */
+.location-sheet__address {
+  white-space: pre-line;
+}
+
+/* Element: pista cuando no hay ni mensaje ni direccion */
+.location-sheet__hint {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--sf-placeholder);
+}
+
+/* Element: boton a Maps. Mismas medidas que la accion principal del proyecto. */
+.location-sheet__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+}

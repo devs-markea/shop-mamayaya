@@ -1,0 +1,22 @@
+{
+  // Type checking only (`npm run check`): Vite does the compiling, stripping types
+  // without looking at them. Hence noEmit and bundler resolution.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    // The Google Maps SDK is loaded at runtime (the /mamayaya/datos location picker
+    // injects it), so there is no `import` TypeScript could infer the `google`
+    // namespace from. It's declared here so that code gets checked too.
+    "types": ["vite/client", "google.maps"]
+  },
+  "include": ["resources/js/**/*"]
+}

@@ -1,0 +1,376 @@
+/* ---------------------------------------------------------------------------
+   Block: order-list
+   ---------------------------------------------------------------------------
+   Lista de lineas del pedido. Spec: gap 20.
+   --------------------------------------------------------------------------- */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 0;
+  transition: opacity 160ms ease;
+}
+
+/* La lista espera respuesta de la API. Se bloquea ENTERA y no solo la linea
+   pulsada: en un "compra y lleva" un cambio de cantidad rehace los grupos, asi
+   que la respuesta puede reordenar y renumerar cualquier otra linea. */
+.order-list[data-busy] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Block: order-totals — subtotal y descuentos. Solo con promociones aplicadas:
+   el total vive en la barra superior, y sin descuento el subtotal seria ese
+   mismo importe repetido.
+   --------------------------------------------------------------------------- */
+.order-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.order-totals__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-totals__term {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--sf-muted);
+}
+
+.order-totals__value {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--sf-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.order-totals__row--discount .order-totals__value {
+  color: var(--sf-success);
+}
+
+/* Element: error — la API rechazo un cambio de cantidad o un borrado.
+   Oculto por defecto con el atributo hidden. */
+.order-list__error {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--sf-indigo);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------------------
+   Block: order-item
+   ---------------------------------------------------------------------------
+   Linea del pedido: imagen 70x70 a la izquierda, cuerpo a la derecha.
+   El cuerpo reparte en dos filas con space-between, asi que la fila de acciones
+   queda alineada al pie de la imagen sin alturas fijas.
+
+   Spec: imagen 70x70 radius 12 - cuerpo space-between - info gap 2
+   El gap entre imagen y cuerpo no viene en la spec: se usa 12, el mismo que
+   .product-card, que es la otra pareja imagen + texto del sistema.
+   --------------------------------------------------------------------------- */
+.order-item {
+  display: flex;
+  gap: 12px;
+}
+
+/* Element: media — 70x70 anclada arriba */
+.order-item__media {
+  flex: 0 0 70px;
+  width: 70px;
+  height: 70px;
+  overflow: hidden;
+  border-radius: 12px;
+  background-color: var(--sf-border);
+}
+
+.order-item__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Element: body — ocupa el resto y separa las dos filas */
+.order-item__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  min-height: 70px;
+}
+
+/* Element: fila superior — info a la izquierda, precio a la derecha */
+.order-item__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.order-item__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* Element: title — nombre y, a su lado, la insignia de la promocion. El enlace
+   se recorta antes de empujarla: la fila comparte ancho con el importe de la
+   derecha, y en un movil no caben un nombre largo y una etiqueta. */
+.order-item__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--sf-ink);
+}
+.order-item__title > a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-item__badge {
+  flex: 0 0 auto;
+}
+
+/* La personalizacion no trae spec tipografica: se usa el patron de texto
+   secundario del sistema (12/16 #6C757D), igual que .option-group__label. */
+.order-item__custom {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--sf-muted);
+}
+
+/* Element: aviso de la linea. El de un "compra y lleva" incompleto va en dorado
+   —es una oportunidad, no un dato—; el que explica que el resto de la fila ya
+   esta en la promocion, en gris. */
+.order-item__hint {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--sf-accent);
+}
+
+.order-item__hint--muted {
+  color: var(--sf-muted);
+}
+
+/* Element: price — lo que se paga por la linea. Es el unico importe de la
+   esquina: el precio de lista se compara abajo, junto a la papelera, donde hay
+   sitio de sobra para los dos.
+
+   Spec: #141821. A diferencia de .product-card__price (dorado), aqui el precio
+   va en tinta: el dorado queda para el total del pedido y el aviso de envio. */
+.order-item__price {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--sf-ink);
+  white-space: nowrap;
+}
+
+/* Element: pricing — el par de lista y final, solo cuando hay descuento. Ocupa
+   el hueco que quedaba entre la papelera y el contador. */
+.order-item__pricing {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.order-item__pricing-final {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--sf-accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Element: fila inferior — papelera, el par de precios y, al fondo, la cantidad.
+   El contador se empuja con margen automatico en lugar de con space-between: asi
+   queda a la derecha lleve la fila dos elementos o tres. */
+.order-item__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.order-item__actions .stepper {
+  margin-inline-start: auto;
+}
+
+.order-item__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  color: var(--sf-muted);
+  border-radius: 8px;
+  transition: color 160ms ease;
+}
+.order-item__remove:hover {
+  color: var(--sf-ink);
+}
+
+/* --- Desktop -------------------------------------------------------------
+   La fila gana cuerpo en la columna ancha: el nombre y el importe suben a 16 y
+   la personalizacion a 13. En movil los tres van con la tipografia general de
+   la pantalla porque el ancho es el que es; aqui la lista es lo que se recorre
+   para repasar el pedido, y sus dos datos —que pediste y cuanto cuesta— se leen
+   antes que el resto de la linea.
+
+   El importe se va ademas a 700, un peso por encima del nombre que tiene al
+   lado: es la cifra que se comprueba, y es la unica de la fila mientras no haya
+   descuento —el par de lista y final vive abajo, junto a la papelera—.
+
+   La personalizacion baja a 13 en lugar de subir: es la unica de las tres que
+   no crece, y asi el gris de debajo del nombre queda un escalon mas lejos en
+   vez de empatar con el. */
+@media (min-width: 768px) {
+  .order-item__title {
+    font-size: 16px;
+  }
+
+  .order-item__custom {
+    font-size: 13px;
+  }
+
+  .order-item__price {
+    font-size: 16px;
+    font-weight: 700;
+  }
+}
+
+/* The .stepper, .promo-badge and .price-was blocks live in quantity-stepper.css,
+   promo-badge.css and product-card.css. Astro repeated them here because the cart's
+   lines are painted by JS and no component got mounted; in the single Laravel bundle
+   this later copy overrode page rules such as .product-detail__promo. */
+
+/* ---------------------------------------------------------------------------
+   Block: promo-group — el acordeon de un "compra y lleva" en el pedido.
+
+   Un grupo NO es una linea del carrito: toma unidades de varias filas, y una
+   misma fila puede aportar unidades al grupo y dejar otras fuera. Por eso el
+   desglose se pinta por unidad: es lo unico que explica que hay dentro y cual
+   sale gratis. Contar, en cambio, se cuenta una sola vez —ver el pie.
+   --------------------------------------------------------------------------- */
+.promo-group {
+  margin-top: 4px;
+}
+
+.promo-group__summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--sf-accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  list-style: none; /* el triangulo del navegador no sigue el sistema */
+}
+.promo-group__summary::-webkit-details-marker {
+  display: none;
+}
+/* Chevron propio, del mismo trazo que el resto de iconos. */
+.promo-group__summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border: solid currentcolor;
+  border-width: 0 1.5px 1.5px 0;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.promo-group[open] .promo-group__summary::before {
+  transform: translateY(1px) rotate(-135deg);
+}
+
+.promo-group__units {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.promo-unit {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* Element: info — el platillo y, debajo, sus personalizaciones. Dos lineas
+   porque son dos cosas distintas: que te llevas y como lo pediste. */
+.promo-unit__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* "Hamburguesa - Doble": el nombre con su variante al lado. En tinta, porque
+   es lo que se lleva; las personalizaciones quedan en gris debajo. */
+.promo-unit__label {
+  color: var(--sf-ink);
+  font-weight: 500;
+}
+
+.promo-unit__options {
+  color: var(--sf-muted);
+  font-weight: 400;
+}
+
+.promo-unit__price {
+  flex: 0 0 auto;
+  color: var(--sf-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* La unidad regalada lo es ENTERA —variante y personalizaciones—, asi que se
+   rotula "GRATIS" a secas: no hay ningun resto que cobrar debajo. */
+.promo-unit__free {
+  flex: 0 0 auto;
+  padding: 0 8px;
+  border-radius: 100px;
+  background-color: var(--sf-success-tint);
+  color: var(--sf-success);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* Los controles NO viven aqui dentro: debajo del acordeon va un unico
+   .order-item__actions —papelera, par de precios y contador— igual que en una
+   linea con descuento. Uno solo, aunque el grupo junte varias configuraciones:
+   las tres tarjetas del pedido se cuentan igual, y el acordeon queda como lo
+   que es, informativo, plegable sin llevarse por delante como cambiar el pedido. */

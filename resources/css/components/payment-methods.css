@@ -1,0 +1,14 @@
+/* ---------------------------------------------------------------------------
+   Block: payment-methods
+   ---------------------------------------------------------------------------
+   Etiqueta y opciones, y las opciones entre si: los dos huecos son de 12.
+
+   Es lo unico que pone este componente: quien pinta cada opcion es
+   .payment-option, en components/PaymentOption.astro. El reparto en columna lo
+   hacen las utilidades de Bootstrap en el marcado; aqui va solo la medida del
+   hueco, que sale de la escala de la tienda y no de la de Bootstrap.
+   --------------------------------------------------------------------------- */
+.payment-methods,
+.payment-methods__options {
+  gap: 12px;
+}

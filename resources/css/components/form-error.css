@@ -1,0 +1,20 @@
+/* ---------------------------------------------------------------------------
+   Block: form-error
+   ---------------------------------------------------------------------------
+   Sale en /mamayaya/datos, en las tres pantallas de pago y en /mamayaya/recibido.
+
+   El color es el mismo que ya usa el error del carrito (`.order-list__error`),
+   que es lo unico parecido a un color de error que tiene el proyecto: las specs
+   no definen ninguno. Si algun dia entra un rojo de marca, se cambia en los dos.
+
+   La tipografia es la de las notas (Inter 500 12/16): el aviso acompana a un
+   campo, no compite con el.
+   --------------------------------------------------------------------------- */
+.form-error {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--sf-indigo);
+  text-align: center;
+}

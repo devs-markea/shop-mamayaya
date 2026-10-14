@@ -1,0 +1,93 @@
+/* ---------------------------------------------------------------------------
+ * Los colores de la tienda.
+ *
+ * Es la unica capa de variables que queda. El resto de valores —radios, huecos,
+ * tamanos, sombras— va escrito en cada bloque, para que corregir un componente
+ * sea abrir su archivo y cambiar el numero.
+ *
+ * Con el color no sale a cuenta: el acento aparece en 35 archivos y la tinta en
+ * 37. Cambiar la marca a mano serian 94 y 79 sustituciones, y basta olvidar una
+ * para que quede un acento viejo en una pantalla que nadie mira.
+ *
+ * Aqui SOLO estan los colores que se repiten en dos archivos o mas. Los de un
+ * solo uso se quedan escritos donde se usan, que es donde se entienden: el verde
+ * oscurecido del boton de confirmar del mapa, el blanco al 55% de la banda del
+ * esqueleto, el negro al 25% de la sombra del boton flotante.
+ *
+ * El acento de la marca NO se escribe aqui: lo pone el tema, un JSON de
+ * resources/themes/ que el layout escribe en el `style` de <html> (ver
+ * app/Services/Theme/ThemeRepository.php). Aqui solo se derivan de el las piezas que cuelgan del
+ * acento.
+ *
+ * Todo lo demas —neutros y senales, el verde de WhatsApp incluido— es igual en
+ * cualquier tema y se cambia aqui, a mano.
+ * --------------------------------------------------------------------------- */
+
+:root {
+  /* --- Acento: derivados del tema ---------------------------------------- */
+
+  /* Salen de --sf-accent-rgb, que viene del tema, y ningun tema los escribe:
+     asi un tema nuevo no puede dejarse el tinte con el color del anterior.
+
+     Se derivan con rgba() sobre el triplete y no con color-mix(): es lo mismo
+     que hace Bootstrap con sus --bs-*-rgb, y lo lee cualquier navegador que
+     lea custom properties.
+
+     Se calculan en <html>, que es donde llega el tema. Por eso el tema va en
+     <html> y en ningun otro elemento: ver app/Services/Theme/Theme.php. */
+
+  /* El acento como color: botones, precios, estados activos, aro de foco. */
+  --sf-accent: rgb(var(--sf-accent-rgb));
+  /* El acento al 10%: fondo de los avisos, del boton de copiar y de la opcion
+     marcada en la lista de paises. */
+  --sf-accent-tint: rgba(var(--sf-accent-rgb), 0.1);
+  /* Mas presente que el tinte: la franja de 4 que marca la tarjeta de pasos en
+     /recibido y el fondo del chip activo de la barra de desktop. */
+  --sf-accent-edge: rgba(var(--sf-accent-rgb), 0.25);
+
+  /* --- Neutros ----------------------------------------------------------- */
+
+  --sf-ink: #141821;
+  --sf-ink-soft: #616673;
+  /* Gris de texto secundario de desktop: los rotulos apagados, la descripcion
+     del platillo y las opciones sin elegir. Viene asi del diseno y no se apoya
+     en --sf-muted ni en --sf-ink-soft: es mas frio y mas oscuro que los dos, que
+     es lo que pide un gris que va a leerse a 16. */
+  --sf-slate: #4a5568;
+  --sf-muted: #6c757d;
+  --sf-placeholder: #9ca3af;
+  /* El gris mas claro de desktop: el texto de ayuda del buscador, su lupa y la
+     cifra de platillos de la columna lateral. Viene asi del diseno; no es
+     --sf-placeholder, que es el de los campos del pedido. */
+  --sf-subtle: #98a2b3;
+  --sf-border: #eaecf0;
+  --sf-body-bg: #f8f9fb;
+  --sf-white: #ffffff;
+  /* La tinta al 45%, para lo que se ve a traves: el velo de las hojas modales,
+     el del mapa bloqueado y la sombra del pin sobre el mapa. */
+  --sf-scrim: rgb(20 24 33 / 45%);
+
+  /* --- Senales: no las cambia el tema ------------------------------------ */
+
+  /* Verde de confirmacion: el sello de /recibido y la ubicacion ya guardada.
+     No es el de WhatsApp —aquel identifica un canal, este dice que algo salio
+     bien— y por eso son dos colores y no uno. */
+  --sf-success: #3aa678;
+  /* Fondo de la etiqueta de ahorro. El verde de las promociones es senaletica
+     —"esto te cuesta menos"— y por eso se conserva del panel, a diferencia del
+     acento del precio final, que si es tipografia de cada tienda. */
+  --sf-success-tint: rgb(58 166 120 / 12%);
+  /* El verde de las etiquetas solidas sobre foto, con texto blanco encima: "#1
+     favoritos" en los destacados y "ABIERTO" en el banner. Mas oscuro que
+     --sf-success para que el blanco se lea sobre el. */
+  --sf-success-strong: #228b5a;
+
+  /* Verde de WhatsApp. Solo para el boton de enviar el pedido: el resto de
+     acciones del sistema van en el acento. */
+  --sf-whatsapp: #25d366;
+  --sf-whatsapp-hover: #1fb855;
+
+  /* El unico azul del sistema: la etiqueta de "obligatorio" de las opciones y el
+     aviso de campo que falta. */
+  --sf-indigo: #4f46e5;
+}

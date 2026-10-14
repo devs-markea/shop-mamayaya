@@ -1,0 +1,73 @@
+/* ---------------------------------------------------------------------------
+   Block: menu-sidebar
+   ---------------------------------------------------------------------------
+   La columna de la izquierda de la portada de desktop: la tienda y el indice de
+   secciones. Va dentro del contenedor de la portada, al lado del catalogo, y sin
+   fondo: se apoya en el de la pagina.
+
+   Spec: ancho 320 - borde derecho 1 #EAECF0
+         tienda   260 de ancho, a 32/32 - nombre Inter 700 24/30
+         linea    260, 1px #EAECF0, 24 bajo la tienda
+         indice   260 de ancho, 24 bajo la linea: components/MenuIndex.astro
+
+   La spec ponia el turno bajo el nombre (gap 14, Inter 400 14/100%): se mudo al
+   reloj de la barra de desktop, y con el se fueron su linea y su hueco.
+
+   Dos cajas: el panel —con su borde, del alto de toda la portada— y dentro, su
+   contenido, pegado bajo la cabecera mientras se baja por el catalogo:
+   un indice que se va con el scroll no puede decir en que seccion se esta. Si las
+   categorias no caben en la pantalla, el contenido scrollea solo.
+
+   El contenido mide lo que mide, no la pantalla entera: con el alto de la ventana,
+   al asomar el pie el sticky lo empujaria hacia arriba y la columna se quedaria en
+   blanco justo al final del catalogo.
+   --------------------------------------------------------------------------- */
+.menu-sidebar {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .menu-sidebar {
+    display: block;
+    flex: 0 0 320px;
+    width: 320px;
+    border-right: 1px solid var(--sf-border);
+  }
+  .menu-sidebar__inner {
+    position: sticky;
+    /* El alto de .navbar-desktop, que tambien es sticky y va encima. Si cambia la
+       barra, cambia aqui y en el scroll-margin-top de .menu-section. */
+    top: 77px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-height: calc(100vh - 77px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* 32 + 260 de contenido: el resto del ancho queda a la derecha, sin relleno. */
+    padding: 32px 0 32px 32px;
+    scrollbar-width: thin;
+  }
+  .menu-sidebar__inner > * {
+    flex: 0 0 auto;
+    width: 260px;
+  }
+
+  /* Element: name — la tienda */
+  .menu-sidebar__name {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 30px;
+    color: var(--sf-ink);
+    overflow-wrap: anywhere;
+  }
+
+  /* Element: rule — el <hr> del Reboot trae margen, color heredado y opacidad .25 */
+  .menu-sidebar__rule {
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--sf-border);
+    opacity: 1;
+  }
+}
