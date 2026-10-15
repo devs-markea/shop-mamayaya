@@ -4,7 +4,10 @@ use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Env;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 // Keep the .env values out of the process environment. With putenv() they'd be written
 // into the PHP worker, which on shared hosting (SiteGround) can also serve the staging
@@ -21,6 +24,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // The pages carry no session, like the Astro store. Nothing reads it: the cart, the
+        // checkout draft and the order pointer are the store's own cookies, and every form
+        // is sent by JavaScript to /api/* (a group that never had session or CSRF). With it,
+        // each visit wrote a session file and two encrypted cookies for nothing, and every
+        // bot request without cookies left a new file behind.
+        $middleware->web(remove: [
+            StartSession::class,
+            ShareErrorsFromSession::class,
+            ValidateCsrfToken::class,
+        ]);
+
         // The store's cookies are not encrypted: the screens' JavaScript writes the
         // checkout draft and the order pointer, and the server reads them.
         $middleware->encryptCookies(except: [
