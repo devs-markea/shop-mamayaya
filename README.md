@@ -25,7 +25,7 @@ php artisan key:generate
 composer dev              # servidor en localhost:8000 y Vite con recarga
 ```
 
-Toda la configuración sale del `.env`, y cada variable está explicada en `.env.example`.
+Toda la configuración sale del `.env`; `.env.example` lista las variables.
 Las variables puestas en la línea de comandos no llegan a la aplicación web: para apuntar
 a otra API, se cambia el `.env`.
 
