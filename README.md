@@ -87,8 +87,8 @@ routes/
 ## Producción
 
 El despliegue es automático con GitHub Actions (`.github/workflows/`): un push a `staging`
-publica en staging (`shop.markeafoods.com`). El de producción (`main`) está apagado hasta
-tener su dominio. Cada despliegue construye los assets,
+publica en staging (`shop.markeafoods.com`) y uno a `main`, en producción
+(`order.markeafoods.com`). Cada despliegue construye los assets,
 instala las dependencias y sube la tienda a SiteGround: la carpeta `public` va a
 `public_html` y el resto a `laravel_app`, fuera de la raíz web. El `.env` y `storage` del
 servidor se conservan de un despliegue a otro.
