@@ -25,7 +25,7 @@ php artisan key:generate
 composer dev              # servidor en localhost:8000 y Vite con recarga
 ```
 
-Toda la configuración sale del `.env`, y cada variable está explicada en `.env.example`.
+Toda la configuración sale del `.env`; `.env.example` lista las variables.
 Las variables puestas en la línea de comandos no llegan a la aplicación web: para apuntar
 a otra API, se cambia el `.env`.
 
@@ -87,8 +87,8 @@ routes/
 ## Producción
 
 El despliegue es automático con GitHub Actions (`.github/workflows/`): un push a `staging`
-publica en staging (`shop.markeafoods.com`). El de producción (`main`) está apagado hasta
-tener su dominio. Cada despliegue construye los assets,
+publica en staging (`shop.markeafoods.com`) y uno a `main`, en producción
+(`order.markeafoods.com`). Cada despliegue construye los assets,
 instala las dependencias y sube la tienda a SiteGround: la carpeta `public` va a
 `public_html` y el resto a `laravel_app`, fuera de la raíz web. El `.env` y `storage` del
 servidor se conservan de un despliegue a otro.

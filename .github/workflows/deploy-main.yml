@@ -1,17 +1,14 @@
 name: Deploy Laravel to SiteGround
 
-# OFF: production has no domain yet. Pushes to main don't deploy, and a manual run stops
-# at "Check target folder" while SITE_DOMAIN is the placeholder. To turn it on, set
-# SITE_DOMAIN and uncomment `push`.
 on:
-  # push:
-  #   branches: [ main ]
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
 env:
   # The site's domain. Its folder on SiteGround is www/<domain>, where public_html (web
   # root) and laravel_app hang from, and APP_URL is https://<domain>.
-  SITE_DOMAIN: __PRODUCTION_DOMAIN__
+  SITE_DOMAIN: order.markeafoods.com
 
 jobs:
   deploy:
