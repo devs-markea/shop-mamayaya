@@ -52,15 +52,16 @@ class ShopCache
      *
      * @template T
      *
-     * @param  string  $name  Nombre corto, para la clave y para el log: `catalogo`, `horario`…
+     * @param  CacheTag  $tag  A concrete tag: its entry() names what's stored.
      * @param  int  $fresh  Segundos que se sirve sin preguntar.
      * @param  int  $stale  Segundos que se sigue sirviendo despues, si la API falla.
      * @param  callable(): T  $load  La lectura de verdad. Si lanza, no se guarda nada.
      * @return T
      */
-    public function remember(CacheTag $tag, string $name, int $fresh, int $stale, callable $load): mixed
+    public function remember(CacheTag $tag, int $fresh, int $stale, callable $load): mixed
     {
-        $key = $this->key($tag, $name);
+        $name = $tag->entry();
+        $key = $this->key($tag);
         $entry = $this->read($key);
 
         if ($this->isFresh($entry)) {
@@ -88,12 +89,13 @@ class ShopCache
     }
 
     /**
-     * Vacia lo guardado con estas etiquetas: la siguiente visita lo vuelve a pedir.
+     * Empties what's stored under these tags: the next visit asks the API again.
      *
-     * No borra claves una a una: sube la generacion de la etiqueta, que forma parte de la
-     * clave, y lo de antes muere por su TTL. Asi funciona igual con cualquier driver,
-     * tambien con los que no tienen etiquetas (`file`, `database`). Lanza si la cache no
-     * responde, para que quien pidio la purga se entere.
+     * Two steps. The current entry is deleted, so the file it lived in goes away now
+     * (the file store only deletes an expired entry when that same key is read again,
+     * and after the purge nobody reads it). Then the tag's generation, part of the key,
+     * goes up: a read that was already in flight writes under the old key and nobody
+     * reads it. Throws if the cache doesn't answer, so whoever asked for the purge knows.
      */
     public function purge(CacheTag ...$tags): void
     {
@@ -106,6 +108,7 @@ class ShopCache
         }
 
         foreach ($targets as $tag) {
+            $this->store->forget($this->key($tag));
             $this->store->forever($this->generationKey($tag), $this->generation($tag) + 1);
         }
 
@@ -218,9 +221,9 @@ class ShopCache
         return $entry !== null && now()->getTimestamp() < $entry['fresh_until'];
     }
 
-    private function key(CacheTag $tag, string $name): string
+    private function key(CacheTag $tag): string
     {
-        return "shop:{$this->version}:{$tag->value}:g{$this->generation($tag)}:{$name}";
+        return "shop:{$this->version}:{$tag->value}:g{$this->generation($tag)}:{$tag->entry()}";
     }
 
     private function generation(CacheTag $tag): int

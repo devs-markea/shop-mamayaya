@@ -13,7 +13,9 @@ return [
     |
     */
 
-    'default' => env('QUEUE_CONNECTION', 'database'),
+    // `sync` and not Laravel's `database`: the store has no database, and nothing goes
+    // through a queue today. Whatever does, someday, runs in the same request.
+    'default' => env('QUEUE_CONNECTION', 'sync'),
 
     /*
     |--------------------------------------------------------------------------

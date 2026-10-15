@@ -80,7 +80,6 @@ class CatalogService
     {
         $items = $this->cache->remember(
             CacheTag::Catalog,
-            'catalogo',
             $this->ttl['fresh'],
             $this->ttl['stale'],
             fn () => $this->api->get('/api/products'),

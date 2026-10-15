@@ -23,4 +23,18 @@ enum CacheTag: string
     {
         return $this === self::All ? [self::Catalog, self::Schedule, self::Config] : [$this];
     }
+
+    /**
+     * The one entry each concrete tag stores, short: it's part of the key and of the log.
+     * Knowing it is what lets a purge delete the entry instead of orphaning it.
+     */
+    public function entry(): string
+    {
+        return match ($this) {
+            self::Catalog => 'catalogo',
+            self::Schedule => 'horario',
+            self::Config => 'configuracion',
+            self::All => throw new \LogicException('`tienda` groups the other tags and stores nothing of its own.'),
+        };
+    }
 }

@@ -1,0 +1,238 @@
+name: Deploy Laravel to SiteGround (staging)
+
+on:
+  push:
+    branches: [ staging ]
+  workflow_dispatch:
+
+env:
+  # The site's domain. Its folder on SiteGround is www/<domain>, where public_html (web
+  # root) and laravel_app hang from, and APP_URL is https://<domain>.
+  SITE_DOMAIN: shop.markeafoods.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Refuses to run until SITE_DOMAIN names the real site: the deploy empties public_html.
+      - name: Check target folder
+        run: |
+          if [[ "$SITE_DOMAIN" == *__*_DOMAIN__* ]]; then
+            echo "❌ Set SITE_DOMAIN (top of this file) to the site's domain."
+            exit 1
+          fi
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, dom, filter, json, curl, fileinfo, tokenizer
+
+      # Vite 8 needs Node 20.19+; the project's version lives in .nvmrc.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build assets with Vite
+        run: npm run build
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --optimize-autoloader --no-dev
+
+      - name: Create deployment archive
+        run: |
+          mkdir -p deployment
+          cp -r * deployment/ 2>/dev/null || :
+
+          # `*` skips the top-level dotfiles, and the server needs this one to create a
+          # first .env.
+          cp .env.example deployment/
+
+          # index.php pointing to ../laravel_app/ (Laravel 12's entry point).
+          cat <<'PHP' > deployment/public/index.php
+          <?php
+
+          use Illuminate\Foundation\Application;
+          use Illuminate\Http\Request;
+
+          define('LARAVEL_START', microtime(true));
+
+          if (file_exists($maintenance = __DIR__.'/../laravel_app/storage/framework/maintenance.php')) {
+              require $maintenance;
+          }
+
+          require __DIR__.'/../laravel_app/vendor/autoload.php';
+
+          /** @var Application $app */
+          $app = require_once __DIR__.'/../laravel_app/bootstrap/app.php';
+
+          $app->handleRequest(Request::capture());
+          PHP
+
+          cd deployment
+          rm -rf .git .github tests storage/logs/* storage/framework/cache/* storage/framework/sessions/* storage/framework/views/* node_modules public/hot
+
+          # Without the compiled assets every page fails: stop here instead of deploying.
+          if [ ! -f "public/build/manifest.json" ]; then
+            echo "❌ public/build/manifest.json is missing"
+            exit 1
+          fi
+          echo "✅ Vite build assets found in public/build"
+
+          tar -czf ../deployment.tar.gz .
+          cd ..
+
+      - name: Deploy to SiteGround
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SITEGROUND_HOST }}
+          username: ${{ secrets.SITEGROUND_USERNAME }}
+          key: ${{ secrets.SITEGROUND_SSH_KEY }}
+          passphrase: ${{ secrets.SITEGROUND_SSH_PASSPHRASE }}
+          port: ${{ secrets.SITEGROUND_PORT }}
+          script: |
+            # Crear backup del sitio actual
+            if [ -d "www/${{ env.SITE_DOMAIN }}/public_html_backup" ]; then
+              rm -rf www/${{ env.SITE_DOMAIN }}/public_html_backup
+            fi
+            if [ -d "www/${{ env.SITE_DOMAIN }}/public_html" ]; then
+              cp -r www/${{ env.SITE_DOMAIN }}/public_html www/${{ env.SITE_DOMAIN }}/public_html_backup
+            fi
+
+            mkdir -p www/${{ env.SITE_DOMAIN }}/temp_deployment
+
+      - name: Upload files
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SITEGROUND_HOST }}
+          username: ${{ secrets.SITEGROUND_USERNAME }}
+          key: ${{ secrets.SITEGROUND_SSH_KEY }}
+          passphrase: ${{ secrets.SITEGROUND_SSH_PASSPHRASE }}
+          port: ${{ secrets.SITEGROUND_PORT }}
+          source: "deployment.tar.gz"
+          target: "www/${{ env.SITE_DOMAIN }}/temp_deployment/"
+
+      - name: Extract and configure
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.SITEGROUND_HOST }}
+          username: ${{ secrets.SITEGROUND_USERNAME }}
+          key: ${{ secrets.SITEGROUND_SSH_KEY }}
+          passphrase: ${{ secrets.SITEGROUND_SSH_PASSPHRASE }}
+          port: ${{ secrets.SITEGROUND_PORT }}
+          script: |
+            set -e
+            cd www/${{ env.SITE_DOMAIN }}/temp_deployment
+            tar -xzf deployment.tar.gz
+            rm deployment.tar.gz
+
+            if [ ! -d "../public_html" ]; then
+              mkdir -p ../public_html
+            fi
+
+            # Copiar el public con el nuevo index.php. `public/.` and not `public/*`: the
+            # .htaccess with the rewrite rules is a dotfile, and without it no route works.
+            rm -rf ../public_html/*
+            cp -a public/. ../public_html/
+
+            # Re-crear symlink de storage en public_html
+            cd ../public_html
+            rm -f storage
+            ln -s ../laravel_app/storage/app/public storage
+
+            # Asegurar directorio privado de Laravel
+            if [ ! -d "../laravel_app" ]; then
+              mkdir ../laravel_app
+            fi
+
+            cd ..
+            # === Backup de storage y .env ANTES de limpiar laravel_app ===
+            if [ -d "laravel_app/storage" ]; then
+              echo "Backing up storage"
+              rm -rf laravel_app_storage_backup
+              mv laravel_app/storage laravel_app_storage_backup
+            fi
+
+            if [ -f "laravel_app/.env" ]; then
+              echo "Backing up .env"
+              cp laravel_app/.env laravel_app_env_backup
+            fi
+
+            # Limpiar código de la app sin perder storage/.env
+            rm -rf laravel_app/*
+            cd temp_deployment
+            cp -a . ../laravel_app/
+
+            cd ..
+
+            rm -rf temp_deployment
+
+            # === Restaurar storage y .env ===
+            if [ -d "laravel_app_storage_backup" ]; then
+              echo "Restoring storage"
+              rm -rf laravel_app/storage
+              mv laravel_app_storage_backup laravel_app/storage
+            fi
+
+            if [ -f "laravel_app_env_backup" ]; then
+              echo "Restoring .env"
+              mv laravel_app_env_backup laravel_app/.env
+            fi
+
+            # Configurar permisos y caches en Laravel
+            cd laravel_app
+
+            mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+
+            chmod -R 755 storage
+            chmod -R 755 bootstrap/cache
+
+            # Crear .env SOLO si no existe (tú lo sueles manejar directo en server).
+            # Each key is removed and written again: appending after .env.example's own
+            # line would leave the first value in force. The ERP and Maps keys aren't
+            # GitHub secrets: they're written only in the server's .env.
+            if [ ! -f ".env" ]; then
+              cp .env.example .env
+              set_env() { sed -i "/^$1=/d" .env; printf '%s=%s\n' "$1" "$2" >> .env; }
+              # APP_ENV=production on staging too: secure cookies and forced https.
+              set_env APP_ENV production
+              set_env APP_DEBUG false
+              set_env APP_URL "https://${{ env.SITE_DOMAIN }}"
+              set_env LOG_LEVEL warning
+              set_env TEST_MODE false
+              php artisan key:generate --force
+              echo "⚠️ .env created: fill in API_URL, SHOP_API_KEY, SHOP_CACHE_PURGE_KEY and GOOGLE_MAPS_API_KEY on the server, then run php artisan config:cache"
+            fi
+
+            php artisan config:clear
+            php artisan route:clear
+            php artisan view:clear
+
+            # No cache:clear: the store's cache keeps the backup copy of the ERP reads,
+            # the one served while the ERP doesn't answer. Emptying it on every deploy
+            # would leave the store without it. The panel's "Refrescar tienda" purges it.
+
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            # Configuration and ERP connection. It doesn't stop the deploy: it names what's missing.
+            php artisan shop:check --api || echo "⚠️ shop:check found problems: review the .env"
