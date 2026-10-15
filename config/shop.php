@@ -21,9 +21,10 @@ return [
     // Silences the delivery-area notice. For the team only: off in production.
     'test_mode' => (bool) env('TEST_MODE', false),
 
-    // Where "open" or "closed" comes from: the backend's `isOpen` (false) or the
-    // `days[].shifts` ranges, computed here (true).
-    'schedule_from_shifts' => (bool) env('SCHEDULE_FROM_SHIFTS', false),
+    // Where "open" or "closed" comes from: the `days[].shifts` ranges, computed here on
+    // every visit (true, the default: the schedule is cached for a week), or the backend's
+    // `isOpen` (false: it expires within a minute, so the schedule is only cached 30 s).
+    'schedule_from_shifts' => (bool) env('SCHEDULE_FROM_SHIFTS', true),
 
     // The store's time zone: the schedule's and "open now"'s.
     'timezone' => 'America/Cancun',
@@ -48,11 +49,13 @@ return [
     */
 
     'cache' => [
-        // null = the application's CACHE_STORE.
-        'store' => env('SHOP_CACHE_STORE'),
+        // null (or empty) = the application's CACHE_STORE.
+        'store' => env('SHOP_CACHE_STORE') ?: null,
 
-        // Version of the SHAPE of what's stored. Bumping it starts fresh keys when
-        // the API contract changes and lets the old ones expire.
+        // Version of the SHAPE of what's stored. Bumping it starts fresh keys when the
+        // API contract changes. The old ones are left behind (the file store only deletes
+        // an entry when its own key is read), so run `php artisan cache:clear` once after
+        // deploying the bump.
         'version' => 'v1',
 
         // Below this, every visit would ask again.

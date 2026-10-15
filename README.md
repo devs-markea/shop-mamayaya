@@ -1,141 +1,104 @@
 # Mamá Yaya
 
-Pedido de comida a domicilio o para recoger. **Laravel 12** + **Bootstrap 5.3** (CSS
-compilado, sin Sass) con metodología **BEM**, alojado en **SiteGround**.
+Tienda en línea de Mamá Yaya. El cliente arma su pedido desde el menú, elige si lo recibe
+a domicilio o lo recoge en el local y paga por transferencia, en efectivo o con Mercado
+Pago. Al terminar ve la confirmación con su número de pedido y puede escribir a la tienda
+por WhatsApp con el pedido ya redactado.
 
-Es la migración de `superfoods-shop` (Astro 7 en Vercel). Conserva sus rutas, su
-contrato con la API del ERP y su capa de estilos; cambia el servidor que la sirve.
+La tienda no guarda datos propios: el catálogo, el horario, el carrito y los pedidos viven
+en el ERP, con el que habla por su API. Lo que lee se guarda en caché con una copia de
+respaldo, así que la tienda se sigue viendo aunque el ERP tarde o no responda.
 
-## Stack
+## Tecnología
 
-| Pieza                       | Versión | Nota                                                   |
-| :-------------------------- | :------ | :----------------------------------------------------- |
-| laravel/framework           | 12.x    | PHP ^8.2; el lock se resuelve para 8.2 (ver abajo)     |
-| bootstrap                   | 5.3.8   | `dist/css/bootstrap.min.css` + overrides en CSS puro   |
-| @popperjs/core              | 2.11.8  | peer de Bootstrap (dropdown)                           |
-| swiper                      | 14.3.0  | carrusel de destacados                                 |
-| @fontsource-variable/inter  | 5.x     | Inter autoalojada, solo latin y latin-ext              |
-| vite / laravel-vite-plugin  | 8 / 3   | build de assets                                        |
-| typescript                  | 7.x     | solo comprueba tipos (`npm run check`); compila Vite   |
+- **Laravel 12** (PHP 8.2 o superior).
+- **Bootstrap 5.3** en CSS, sin Sass, con clases BEM.
+- **Vite** para los assets y **TypeScript** para los scripts del navegador.
 
-`composer.json` fija `config.platform.php = 8.2.0`: sin eso, Composer resuelve el lock
-para el PHP de la máquina que lo corre (8.4 en local), elige Symfony 8 y la tienda no
-arranca en un servidor con 8.2 o 8.3.
-
-Node **24.x** (`.nvmrc`) solo hace falta para construir los assets: en el servidor no.
-
-## Puesta en marcha (local)
+## Instalación local
 
 ```bash
 composer install
 npm install
-cp .env.example .env      # y rellenar API_URL, SHOP_API_KEY…
+cp .env.example .env      # rellenar API_URL, SHOP_API_KEY…
 php artisan key:generate
-composer dev              # php artisan serve + vite
+composer dev              # servidor en localhost:8000 y Vite con recarga
 ```
 
-La configuración sale **solo del `.env`**. `bootstrap/app.php` llama a
-`Env::disablePutenv()` (ver docs/despliegue-siteground.md), y con eso una variable puesta
-en la línea de comandos (`API_URL=… php artisan serve`) ya no llega a la aplicación: el
-servidor embebido de PHP solo la expone por `getenv()`, que Laravel deja de leer. Para
-apuntar a otra API en local, se cambia el `.env`. Los comandos de `artisan` sí la ven.
+Toda la configuración sale del `.env`, y cada variable está explicada en `.env.example`.
+Las variables puestas en la línea de comandos no llegan a la aplicación web: para apuntar
+a otra API, se cambia el `.env`.
 
 ## Comandos
 
 | Comando                       | Acción                                                       |
 | :---------------------------- | :----------------------------------------------------------- |
-| `composer dev`                | Servidor en `localhost:8000` y Vite con recarga              |
+| `composer dev`                | Servidor local y Vite con recarga                            |
 | `npm run build`               | Assets de producción en `public/build`                       |
-| `npm run check`               | Tipos de `resources/js` (TypeScript)                         |
-| `php artisan test`            | Tests                                                        |
-| `php artisan shop:check`      | Configuración de la tienda; con `--api`, la conexión al ERP  |
+| `npm run check`               | Revisa los tipos de `resources/js`                           |
+| `php artisan test`            | Pruebas                                                      |
+| `php artisan shop:check`      | Revisa la configuración; con `--api`, también la conexión al ERP |
+
+## Pantallas
+
+| Ruta                           | Qué es                                              |
+| :----------------------------- | :-------------------------------------------------- |
+| `/mamayaya`                    | Menú                                                |
+| `/mamayaya/{slug}`             | Ficha del platillo con sus opciones                 |
+| `/mamayaya/carrito`            | El pedido en curso                                  |
+| `/mamayaya/datos`              | Contacto y dirección de entrega                     |
+| `/mamayaya/pago`               | Propina, método de pago y total                     |
+| `/mamayaya/pago/transferencia` | Cuenta bancaria y detalle del pedido                |
+| `/mamayaya/pago/efectivo`      | Cómo se paga y detalle del pedido                   |
+| `/mamayaya/recibido`           | Confirmación del pedido                             |
+
+Cualquier otra dirección bajo `/mamayaya` muestra la página de "no encontrado". Las
+direcciones antiguas (`/`, `/carrito`, `/pago`…) redirigen a su pantalla bajo `/mamayaya`.
+
+El navegador nunca habla directamente con el ERP: las rutas `/api/*` de la tienda reenvían
+sus peticiones (carrito, envío, pedido y pago) con la sesión del cliente. Además están
+`/api/cache/invalidate`, que el ERP llama para refrescar la tienda, y `/api/health`.
 
 ## Estructura
 
 ```text
 app/
-├── Console/Commands/ShopCheck.php     shop:check — lo que antes validaba el build
-├── Http/Controllers/
-│   ├── Api/                           /api/*: proxy de la sesión, purga, sonda
-│   ├── MenuController.php             /mamayaya (la portada)
-│   ├── ProductController.php          /mamayaya/{slug} (la ficha, y el 404 de la tienda)
-│   ├── CartController.php             /mamayaya/carrito
-│   ├── DeliveryController.php         /mamayaya/datos
-│   ├── PaymentController.php          /mamayaya/pago, /pago/transferencia y /pago/efectivo
-│   ├── ConfirmationController.php     /mamayaya/recibido (el acuse de los tres métodos)
-│   └── LegacyRedirectController.php   las direcciones de antes de /mamayaya
-├── Services/                          lógica de negocio y consumo de la API
-│   ├── ShopApi/                       cliente HTTP del ERP: plazo, reintento, sobre {data}
-│   ├── Cache/                         cache de lecturas con copia de respaldo y purga
-│   ├── Store/                         configuración (con respaldo), horario y StoreContext
-│   │                                  (lo que comparte cada pantalla: carrito, modo de entrega)
-│   ├── Catalog/CatalogService.php     catálogo, secciones, tarjetas y promociones
-│   ├── Cart/                          carrito (CartService) y su cookie (CartSession)
-│   ├── Orders/OrderService.php        la lectura del pedido (GET /api/orders/{id})
-│   └── Theme/                         temas de color (resources/themes/*.json)
-├── Support/                           funciones puras: horario, precio, búsqueda, envío,
-│                                      códigos de error, WhatsApp (enlaces y mensaje del
-│                                      pedido), iconos, borrador, propinas, CLABE, el acuse
-│                                      (Confirmation) y CartView (las líneas del pedido,
-│                                      gemela de cart-view.ts)
-└── View/Components/                   la lógica de presentación de cada componente Blade
+├── Http/Controllers/       una por pantalla, y Api/ para las rutas /api/*
+├── Services/               la lógica: cliente de la API, caché, tienda, catálogo,
+│                           carrito y pedidos
+├── Support/                funciones de apoyo: precios, horario, envío, WhatsApp…
+├── View/Components/        la lógica de los componentes Blade
+└── Console/Commands/       shop:check
 config/
-├── shop.php                           la tienda: tema, modo de pruebas, TTLs, cookies
-├── store-fallback.php                 respaldo de la configuración (EDITAR A MANO)
-└── services.php                       `shop_api`: URL, clave, User-Agent, plazos
+├── shop.php                la tienda: tema, modo de pruebas, tiempos de caché, cookies
+├── store-fallback.php      respaldo de la configuración de la tienda (se edita a mano)
+└── services.php            conexión con la API del ERP
 resources/
-├── css/                               app.css: Bootstrap, fuente, capa global y un
-│   ├── components/                    archivo por componente (bloque BEM)
-│   └── pages/                         y uno por pantalla
-├── images/                            logos e iconos, servidos con Vite::asset()
-├── js/
-│   ├── app.ts                         script global (el botón del chat)
-│   ├── pages/                         una entrada por pantalla (menu.ts)
-│   ├── scripts/                       comportamientos de cliente, uno por archivo
-│   ├── components/                    scripts propios de un componente
-│   └── lib/                           módulos isomorfos que comparten los scripts
-├── themes/                            un JSON por tema de color (STORE_THEME)
-└── views/
-    ├── components/                    un componente Blade por pieza (<x-navbar>…)
-    └── pages/                         las pantallas (menu.blade.php)
+├── views/                  pantallas (pages/) y componentes (components/)
+├── css/                    estilos globales, uno por componente y uno por pantalla
+├── js/                     un script por pantalla (pages/) y sus módulos
+├── images/                 logos e iconos
+└── themes/                 temas de color (STORE_THEME)
 routes/
-├── web.php                            pantallas bajo /mamayaya + redirecciones 302
-└── api.php                            /api/*, las mismas rutas del ERP
+├── web.php                 pantallas y redirecciones
+└── api.php                 rutas /api/*
 ```
 
-## Rutas
+## Producción
 
-Las mismas del proyecto en Astro. Las pantallas se registran en `routes/web.php` a
-medida que se migran:
+El despliegue es automático con GitHub Actions (`.github/workflows/`): un push a `staging`
+publica en staging (`shop.markeafoods.com`). El de producción (`main`) está apagado hasta
+tener su dominio. Cada despliegue construye los assets,
+instala las dependencias y sube la tienda a SiteGround: la carpeta `public` va a
+`public_html` y el resto a `laravel_app`, fuera de la raíz web. El `.env` y `storage` del
+servidor se conservan de un despliegue a otro.
 
-| Ruta                           | Vista                           | Estado          |
-| :----------------------------- | :------------------------------ | :-------------- |
-| `/mamayaya`                    | Listado (menú)                  | hecho           |
-| `/mamayaya/{slug}`             | Detalle con opciones (y 404)    | hecho           |
-| `/mamayaya/carrito`            | Pedido en curso                 | hecho           |
-| `/mamayaya/datos`              | Contacto y dirección            | hecho           |
-| `/mamayaya/pago`               | Propina, método y total         | hecho           |
-| `/mamayaya/pago/transferencia` | Cuenta de destino y detalle     | hecho           |
-| `/mamayaya/pago/efectivo`      | Dónde recoger y detalle         | hecho           |
-| `/mamayaya/recibido`           | Acuse                           | hecho           |
-| `/`, `/carrito`, `/datos`…     | 302 a su pantalla bajo /mamayaya | hecho          |
-| `/api/cart`, `/api/checkout`…  | Proxy de la sesión al ERP       | hecho           |
-| `/api/cache/invalidate`        | Purga pedida por el backend     | hecho           |
-| `/api/health`                  | Sonda de runtime                | hecho           |
-
-## Lo que cambió al salir de Vercel
-
-| En Astro / Vercel                         | En Laravel / SiteGround                                  |
-| :---------------------------------------- | :------------------------------------------------------- |
-| `@astrojs/vercel`, `@vercel/functions`    | Fuera. PHP-FPM detrás de Apache, en el hosting           |
-| Runtime Cache de Vercel + `invalidateByTag` | `ShopCache` sobre la cache de Laravel (`file`), purga por generación de etiqueta |
-| `astro:env` (validado en el build)        | `config/shop.php` + `config/services.php`; lo valida `php artisan shop:check` |
-| API de fuentes de Astro                   | `@fontsource-variable/inter`, empaquetada por Vite       |
-| `redirects` de `astro.config.mjs`         | `routes/web.php` + `LegacyRedirectController` (conserva la query) |
-| Sass                                      | Ya no se compilaba; se quita la dependencia              |
-| Logs de la función en Vercel              | `storage/logs/laravel-AAAA-MM-DD.log`, 14 días           |
-| Componentes `.astro` (frontmatter + `<style is:global>` + `<script>`) | Componente Blade (`app/View/Components` + `resources/views/components`), su CSS en `resources/css/components/` y su script en `resources/js/` |
-| Las lecturas de una página, en paralelo   | En serie; si la API no contesta una vez, las demás de esa petición fallan al instante (`ShopApiClient`), así el peor caso sigue siendo un solo plazo |
-| `prefetch: 'tap'` de Astro                | `resources/js/scripts/prefetch-tap.ts`: precarga la página al pulsar el enlace, no al pasar el ratón |
-
-El despliegue está en [docs/despliegue-siteground.md](docs/despliegue-siteground.md).
+- Los secretos del repositorio son solo los de SSH, compartidos por los dos sitios porque
+  están en el mismo servidor: `SITEGROUND_HOST`, `SITEGROUND_USERNAME`,
+  `SITEGROUND_SSH_KEY`, `SITEGROUND_SSH_PASSPHRASE` y `SITEGROUND_PORT`.
+- El primer despliegue crea el `.env` sin claves. `API_URL`, `SHOP_API_KEY`,
+  `SHOP_CACHE_PURGE_KEY` y `GOOGLE_MAPS_API_KEY` se escriben directo en el `.env` del
+  servidor.
+- Cada cambio en el `.env` del servidor necesita `php artisan config:cache` otra vez.
+- `php artisan shop:check --api` avisa de lo que falte en la configuración.
+- El negocio refresca la tienda con el botón **"Refrescar tienda"** del panel del ERP.

@@ -15,7 +15,9 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    // `file` and not Laravel's `database`: the store has no database. Without this line in
+    // the .env, the ERP reads would go uncached and log an error on every visit.
+    'default' => env('CACHE_STORE', 'file'),
 
     /*
     |--------------------------------------------------------------------------

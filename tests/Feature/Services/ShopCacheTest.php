@@ -4,6 +4,9 @@ namespace Tests\Feature\Services;
 
 use App\Services\Cache\CacheTag;
 use App\Services\Cache\ShopCache;
+use Illuminate\Cache\FileStore;
+use Illuminate\Cache\Repository;
+use Illuminate\Filesystem\Filesystem;
 use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
@@ -19,7 +22,7 @@ class ShopCacheTest extends TestCase
 
     private function read(?callable $load = null, int $fresh = 60, int $stale = 120): mixed
     {
-        return $this->cache()->remember(CacheTag::Catalog, 'catalogo', $fresh, $stale, function () use ($load) {
+        return $this->cache()->remember(CacheTag::Catalog, $fresh, $stale, function () use ($load) {
             $this->loads++;
 
             return $load ? $load() : "lectura {$this->loads}";
@@ -94,6 +97,28 @@ class ShopCacheTest extends TestCase
         $this->cache()->purge(CacheTag::All);
 
         $this->assertSame('lectura 2', $this->read());
+    }
+
+    #[Test]
+    public function la_purga_no_deja_archivos_huerfanos(): void
+    {
+        // The production store: files. Without the forget(), every purge left the old entry
+        // on disk forever, since nobody reads its key again.
+        $dir = sys_get_temp_dir().'/shop-cache-'.uniqid();
+        $cache = new ShopCache(new Repository(new FileStore(new Filesystem, $dir)), 'v1', 30);
+        $files = fn () => count(glob("{$dir}/*/*/*") ?: []);
+
+        $cache->remember(CacheTag::Catalog, 60, 120, fn () => 'lectura');
+
+        for ($i = 0; $i < 5; $i++) {
+            $cache->purge(CacheTag::All);
+            $this->assertSame("lectura {$i}", $cache->remember(CacheTag::Catalog, 60, 120, fn () => "lectura {$i}"));
+        }
+
+        // The catalog entry and the three generation counters: nothing else piles up.
+        $this->assertSame(4, $files());
+
+        (new Filesystem)->deleteDirectory($dir);
     }
 
     #[Test]

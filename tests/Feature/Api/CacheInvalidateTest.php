@@ -44,7 +44,7 @@ class CacheInvalidateTest extends TestCase
         $cache = $this->app->make(ShopCache::class);
         $loads = 0;
         $read = function () use ($cache, &$loads) {
-            return $cache->remember(CacheTag::Config, 'configuracion', 3600, 0, function () use (&$loads) {
+            return $cache->remember(CacheTag::Config, 3600, 0, function () use (&$loads) {
                 return ++$loads;
             });
         };

@@ -66,7 +66,6 @@ class StoreService
         try {
             $remote = (array) $this->cache->remember(
                 CacheTag::Config,
-                'configuracion',
                 $this->ttl['config']['fresh'],
                 $this->ttl['config']['stale'],
                 fn () => $this->api->get('/api/store'),
@@ -158,7 +157,6 @@ class StoreService
         try {
             $schedule = $this->cache->remember(
                 CacheTag::Schedule,
-                'horario',
                 $ttl['fresh'],
                 $ttl['stale'],
                 fn () => $this->fetchSchedule(),
