@@ -57,7 +57,7 @@ class ScheduleTest extends TestCase
 
         $tomorrow = Schedule::resolve($days, $this->at('23:10'));
         $this->assertSame('09:00', $tomorrow['opensAt']['time']);
-        $this->assertSame('manana', Schedule::nextOpeningDay([...$tomorrow, 'days' => $days], $this->at('23:10')));
+        $this->assertSame('mañana', Schedule::nextOpeningDay([...$tomorrow, 'days' => $days], $this->at('23:10')));
         $this->assertSame('closed-today', Schedule::status([...$tomorrow, 'days' => $days], $this->at('23:10')));
         $this->assertSame('closed-now', Schedule::status([...$today, 'days' => $days], $this->at('15:00')));
     }
