@@ -24,7 +24,7 @@ use Carbon\CarbonInterface;
 final class Schedule
 {
     /** Monday = 1 … Sunday = 7, as ISO-8601. */
-    private const WEEKDAYS = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    private const WEEKDAYS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
     private const WEEK_MINUTES = 7 * 1440;
 
@@ -186,7 +186,7 @@ final class Schedule
     }
 
     /**
-     * When it opens again, in words: "hoy", "manana", "el lunes". Null when there is no
+     * When it opens again, in words: "hoy", "mañana", "el lunes". Null when there is no
      * next opening. The minutes decide the day, not the name: a shift on the same weekday
      * may be seven days away.
      */
@@ -203,15 +203,15 @@ final class Schedule
 
         return match ($offset) {
             0 => 'hoy',
-            1 => 'manana',
-            default => 'el '.(self::WEEKDAYS[((int) $opensAt['dayOfWeek']) - 1] ?? 'proximo dia'),
+            1 => 'mañana',
+            default => 'el '.(self::WEEKDAYS[((int) $opensAt['dayOfWeek']) - 1] ?? 'próximo día'),
         };
     }
 
     /**
      * The state in one sentence, or null when unknown.
      *
-     *   Abierto hasta las 23:00 · Abierto las 24 horas · Cerrado · Abre manana a las 09:00
+     *   Abierto hasta las 23:00 · Abierto las 24 horas · Cerrado · Abre mañana a las 09:00
      */
     public static function label(array $schedule, ?CarbonInterface $now = null): ?string
     {
@@ -255,7 +255,7 @@ final class Schedule
      * The current shift in 24 h: the desktop bar's clock and the mobile category sheet.
      * Null when unknown.
      *
-     *   12:00 - 23:00 h. · Abierto las 24 horas · Cerrado · Abre manana a las 09:00 h.
+     *   12:00 - 23:00 h. · Abierto las 24 horas · Cerrado · Abre mañana a las 09:00 h.
      *
      * The span comes from the RANGES resolved now; with overlapping shifts, the one that
      * closes latest. If the ranges can't be read, only the closing time is known.
