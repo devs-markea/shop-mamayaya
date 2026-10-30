@@ -43,6 +43,13 @@
   margin-inline: auto;
 }
 
+/* On mobile the search lives below the tabs (.category-tabs__search). */
+@media (max-width: 767.98px) {
+  .order-bar__inner .menu-search {
+    display: none;
+  }
+}
+
 /* --- Desktop -------------------------------------------------------------
    La columna se convierte en una fila: sin las metas quedan el buscador, a la
    izquierda y ocupando lo que sobre, y el switch, a 48. */

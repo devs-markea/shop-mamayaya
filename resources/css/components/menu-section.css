@@ -28,9 +28,9 @@
   gap: 16px;
   /* Al saltar desde el indice la seccion se queda bajo lo que va anclado arriba: en
      movil, la barra de pedido —anclada a 32 y de 94 de alto, ver
-     components/OrderBar.astro; la de arriba la tapa en parte y no suma— y la de
-     las tabs (48, ver components/CategoryNav.astro), mas aire. */
-  scroll-margin-top: calc(32px + 94px + 48px + 16px);
+     components/OrderBar.astro; la de arriba la tapa en parte y no suma—, la de
+     las tabs (48, ver components/CategoryNav.astro) y su buscador (76), mas aire. */
+  scroll-margin-top: calc(32px + 94px + 48px + 76px + 16px);
 }
 /* En los destacados las tabs no estan (ver components/CategoryNav.astro): solo la
    barra de pedido. */
@@ -111,12 +111,16 @@
 /* Movil: una raya de 1 entre platillo y platillo, del ancho de la tarjeta, en
    medio del hueco de 24 —11,5 por encima y 11,5 por debajo—. Va en la celda y no
    en la tarjeta para no tocar su caja, y solo entre celdas: ni antes de la
-   primera ni despues de la ultima. Los destacados no la llevan. */
+   primera ni despues de la ultima. Los destacados no la llevan.
+
+   While searching, the hits of different categories are no longer siblings, so every
+   hit draws its line and the results list clips the first one (see below). */
 @media (max-width: 767.98px) {
   .menu-section__grid > .menu-section__item {
     position: relative;
   }
-  .menu-section__grid > .menu-section__item + .menu-section__item::before {
+  .menu-section__grid > .menu-section__item + .menu-section__item::before,
+  [data-searching] .menu-section__grid > .menu-section__item::before {
     content: '';
     position: absolute;
     top: -12.5px;
@@ -317,7 +321,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Mientras se busca (solo desktop)
+   Mientras se busca
    ---------------------------------------------------------------------------
    Los resultados no se agrupan: son una sola lista, con la tarjeta de las
    categorias y las mismas columnas que su rejilla. No se pintan aparte —seria
@@ -330,21 +334,30 @@
    src/scripts/menu-search.ts: `data-searching` en el contenedor y
    `data-search-miss` en cada platillo que sobra.
    --------------------------------------------------------------------------- */
-@media (min-width: 768px) {
-  /* Las columnas, de la regla de contenedor de arriba: dos desde 700, como la
-     rejilla de las categorias. Sin ella, una. */
+/* Las columnas, de la regla de contenedor de arriba: dos desde 700, como la
+   rejilla de las categorias. Sin ella, una. */
+.product-list__sections[data-searching] {
+  display: grid;
+  grid-template-columns: repeat(var(--menu-cols, 1), minmax(0, 1fr));
+  gap: 24px;
+}
+[data-searching] > .menu-section,
+[data-searching] .menu-section__grid {
+  display: contents;
+}
+[data-searching] > .menu-section--featured,
+[data-searching] .menu-section__head,
+[data-searching] .menu-section__item[data-search-miss] {
+  display: none;
+}
+
+/* On mobile the bar stays pinned while searching. The min-height leaves the page tall
+   enough for the results to reach it, however few they are; the clip removes the line
+   above the first hit. */
+@media (max-width: 767.98px) {
   .product-list__sections[data-searching] {
-    display: grid;
-    grid-template-columns: repeat(var(--menu-cols, 1), minmax(0, 1fr));
-    gap: 24px;
-  }
-  [data-searching] > .menu-section,
-  [data-searching] .menu-section__grid {
-    display: contents;
-  }
-  [data-searching] > .menu-section--featured,
-  [data-searching] .menu-section__head,
-  [data-searching] .menu-section__item[data-search-miss] {
-    display: none;
+    align-content: start;
+    min-height: calc(100dvh - (32px + 94px + 48px + 76px + 16px));
+    overflow-y: clip;
   }
 }
