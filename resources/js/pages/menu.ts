@@ -8,7 +8,7 @@ import '../scripts/menu-nav.ts';
 import '../scripts/featured-carousel.ts';
 // The mobile bar: transparent over the banner, with its background once scrolled.
 import '../scripts/navbar-scroll.ts';
-// The desktop search: filters the dishes already on the page.
+// The search: filters the dishes already on the page.
 import '../scripts/menu-search.ts';
 // Drops each photo's skeleton when it arrives: only this page paints dish cards.
 import '../scripts/image-skeleton.ts';

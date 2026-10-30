@@ -10,8 +10,12 @@
    Los 36 de la tab cuentan la raya por dentro, como el trazo del diseno: 8 + 20 + 5
    de relleno y 3 de raya. Con el relleno de 8 abajo la tab mediria 39.
 
-   La barra mide 48: el boton y 4 de aire arriba y abajo. Las tabs van apoyadas
-   abajo, sobre la linea gris, y el boton centrado en la barra.
+   La fila de las tabs mide 48: el boton y 4 de aire arriba y abajo. Las tabs van
+   apoyadas abajo, sobre la linea gris, y el boton centrado en la fila.
+
+   Search container, below the row: height 76 - gap 10 - padding 16. The field (44)
+   and its padding add up to those 76. If it changes, it also changes in the
+   scroll-margin-top of .menu-section and in .menu-results.
 
    Dos cajas:
 
@@ -30,7 +34,7 @@
    Si las tabs no caben, la pista scrollea, y la marcada se trae a la vista sola.
 
    La linea gris corre de lado a lado de la pantalla, no solo bajo las tabs: es
-   una sombra interior de la barra, y cada tab pinta su raya encima.
+   una sombra interior de la fila, y cada tab pinta su raya encima.
    --------------------------------------------------------------------------- */
 .category-tabs {
   position: absolute;
@@ -42,13 +46,25 @@
 }
 
 .category-tabs__bar {
+  background-color: var(--sf-body-bg);
+  transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Element: row — the tabs and the button that opens the sheet. */
+.category-tabs__row {
   display: flex;
   align-items: flex-end;
   gap: 8px;
   padding-right: 20px;
-  background-color: var(--sf-body-bg);
   box-shadow: inset 0 -3px 0 var(--sf-border);
-  transition: transform 240ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Element: search — the container of the mobile search. */
+.category-tabs__search {
+  display: flex;
+  gap: 10px;
+  height: 76px;
+  padding: 16px;
 }
 
 /* Modifier: recogida —arriba del todo y en los destacados—. La barra sube su alto y
