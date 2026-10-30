@@ -17,9 +17,10 @@
 // categoria: arriba del todo y en los destacados lleva puesta la clase de ese
 // atributo, que lo esconde.
 //
-// Mientras el buscador de desktop tiene texto las secciones no estan
-// (src/scripts/menu-search.ts): la marca se queda quieta, y saltar a una seccion vacia
-// antes el buscador.
+// Mientras el buscador tiene texto las secciones no estan (src/scripts/menu-search.ts):
+// la marca se queda quieta, y saltar a una seccion vacia antes el buscador. On mobile
+// the field lives in the tabs, so they stay visible while it's in use: hiding them
+// would close the keyboard, or leave a filter with no way to clear it.
 
 import { closeSheet } from '../lib/sheet-close.ts';
 
@@ -76,6 +77,7 @@ function initMenuNav(sections: HTMLElement[], navs: Nav[]): void {
   // las daria todas por cruzadas.
   const search = document.querySelector<HTMLInputElement>('[data-menu-search]');
   const searching = () => Boolean(document.querySelector('[data-searching]'));
+  const typing = () => Boolean(document.activeElement?.matches('[data-menu-search]'));
 
   let current = first;
 
@@ -159,7 +161,12 @@ function initMenuNav(sections: HTMLElement[], navs: Nav[]): void {
   const featured = (section: HTMLElement) => section.hasAttribute('data-menu-featured');
 
   function spy(): void {
-    if (jumping || searching()) return;
+    if (jumping) return;
+
+    if (searching()) {
+      autohide(true);
+      return;
+    }
 
     const top = Math.max(
       0,
@@ -189,7 +196,7 @@ function initMenuNav(sections: HTMLElement[], navs: Nav[]): void {
     }
 
     mark(next);
-    autohide(reached && !featured(next));
+    autohide(typing() || (reached && !featured(next)));
   }
 
   // El `behavior` lo decide el CSS —suave, salvo con movimiento reducido—.
@@ -226,6 +233,8 @@ function initMenuNav(sections: HTMLElement[], navs: Nav[]): void {
 
   window.addEventListener('scroll', schedule, { passive: true });
   window.addEventListener('resize', schedule);
+  // Leaving the field may be what hides the tabs, with no scroll to notice it.
+  document.addEventListener('focusout', schedule);
 
   for (const nav of document.querySelectorAll<HTMLElement>('[data-menu-nav]')) {
     nav.addEventListener('click', (event) => {

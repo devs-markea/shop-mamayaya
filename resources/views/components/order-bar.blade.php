@@ -18,7 +18,8 @@
 
 <section class="order-bar" aria-label="Opciones de entrega">
     <div class="order-bar__inner">
-        {{-- First in the markup because on desktop it goes on the left. Not painted on mobile. --}}
+        {{-- First in the markup because on desktop it goes on the left. Not painted on
+             mobile, where the search lives below the tabs (category-nav). --}}
         @if ($search)
             <x-menu-search />
         @endif

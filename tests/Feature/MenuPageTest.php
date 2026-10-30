@@ -36,6 +36,23 @@ class MenuPageTest extends TestCase
     }
 
     #[Test]
+    public function el_buscador_movil_va_bajo_las_tabs_y_se_oculta_con_ellas(): void
+    {
+        $this->fakeShopApi();
+
+        $html = $this->get('/mamayaya')->assertOk()->getContent();
+
+        $this->assertSame(2, substr_count($html, 'data-menu-search'));
+        // Inside the sliding bar, below the tabs: hiding the bar hides the field too.
+        $this->assertMatchesRegularExpression(
+            '/category-tabs--hidden.*category-tabs__bar.*category-tabs__row.*category-tabs__search.*data-menu-search/s',
+            $html,
+        );
+        // Only the desktop field takes the keyboard shortcut.
+        $this->assertSame(1, substr_count($html, 'aria-keyshortcuts'));
+    }
+
+    #[Test]
     public function usa_los_textos_y_el_respaldo_de_la_tienda(): void
     {
         $this->fakeShopApi();

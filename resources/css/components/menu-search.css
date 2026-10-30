@@ -5,51 +5,55 @@
          lupa 20x20 · texto Inter 600 14/20 #98A2B3
 
    El ancho no es fijo: ocupa lo que deja el switch en la fila.
+
+   On mobile the same box goes below the category tabs (.category-tabs__search). The
+   one in the order bar's row is hidden there (see order-bar.css).
    --------------------------------------------------------------------------- */
 .menu-search {
-  display: none;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background-color: var(--sf-white);
+  color: var(--sf-subtle);
+  cursor: text;
+  transition: box-shadow 160ms ease;
+}
+/* El aro de foco va en la caja y no en el campo, que no tiene borde propio: es la
+   caja entera la que se ve como buscador. */
+.menu-search:focus-within {
+  box-shadow: 0 0 0 2px var(--sf-accent);
+}
+
+.menu-search__icon {
+  flex: 0 0 auto;
+}
+
+/* 16 on mobile: iOS zooms the whole page when focusing a smaller field. */
+.menu-search__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--sf-ink);
+  outline: none;
+}
+.menu-search__input::placeholder {
+  color: var(--sf-subtle);
+  opacity: 1;
 }
 
 @media (min-width: 768px) {
-  .menu-search {
-    display: flex;
-    flex: 1 1 auto;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    height: 44px;
-    padding: 0 16px;
-    border-radius: 12px;
-    background-color: var(--sf-white);
-    color: var(--sf-subtle);
-    cursor: text;
-    transition: box-shadow 160ms ease;
-  }
-  /* El aro de foco va en la caja y no en el campo, que no tiene borde propio: es la
-     caja entera la que se ve como buscador. */
-  .menu-search:focus-within {
-    box-shadow: 0 0 0 2px var(--sf-accent);
-  }
-
-  .menu-search__icon {
-    flex: 0 0 auto;
-  }
-
   .menu-search__input {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
     font-size: 14px;
-    font-weight: 600;
-    line-height: 20px;
-    color: var(--sf-ink);
-    outline: none;
-  }
-  .menu-search__input::placeholder {
-    color: var(--sf-subtle);
-    opacity: 1;
   }
 }
